@@ -1016,7 +1016,7 @@ if __name__ == "__main__":
         print("⚠️ TRADE_CHANNEL_ID não está configurado. Comandos de usuário funcionarão em qualquer canal.")
     
     # Definir o idioma padrão do bot
-    from translator import set_lang
+    from translator import t, get_user_language
     set_lang(DEFAULT_LANGUAGE)
     print(f"🌐 Idioma padrão do bot: {DEFAULT_LANGUAGE}")
     
