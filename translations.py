@@ -15,9 +15,19 @@ TRANSLATIONS = {
         'trade_error': '❌ Falha ao processar trade',
         'trade_error_desc': 'Ocorreu um erro ao processar o código **{code}**.',
         'trade_error_public': '❌ {mention} Ocorreu um erro ao processar seu trade. Verifique sua mensagem privada para mais detalhes.',
-        'trade_by': 'Criado por:',
+        'trade_by': 'Criado por: Math',
         'trade_completed': 'Seu trade foi finalizado com sucesso.',
         'trade_more_info': 'Para ganhar mais trades, participe das atividades e eventos dentro do servidor.',
+        
+        # DM Trade
+        'trades_received_title': '🎁 Você recebeu Trades!',
+        'trades_received_desc': 'Você recebeu {amount} trade(s) do administrador {admin}.',
+        'current_trades': 'Trades Atuais',
+        'dm_blocked': '⚠️ Não foi possível enviar mensagem privada para {user} - DMs bloqueadas.',
+        'dm_error': '⚠️ Erro ao enviar mensagem privada para {user}.',
+        'trades_added': '✅ {amount} trade(s) adicionado(s) para {user}. Total atual: {total} trades.',
+        'trade_amount_invalid': '❌ Quantidade de trades inválida. Use entre 1 e 100.',
+        'member_not_found': '❌ Membro não encontrado ou offline.',
         
         # Erros e avisos
         'invalid_trades_count': '⚠️ Você pode solicitar entre 1 e 10 trades.',
@@ -97,10 +107,20 @@ TRANSLATIONS = {
         'trade_error': '❌ Failed to process trade',
         'trade_error_desc': 'An error occurred while processing the code **{code}**.',
         'trade_error_public': '❌ {mention} An error occurred while processing your trade. Check your private message for more details.',
-        'trade_by': 'Created by:',
+        'trade_by': 'Created by: Math',
         'trade_completed': 'Your trade has been successfully completed.',
         'trade_more_info': 'To earn more trades, participate in activities and events within the server.',
         
+        # DM Trade
+        'trades_received_title': '🎁 You Received Trades!',
+        'trades_received_desc': 'You received {amount} trade(s) from administrator {admin}.',
+        'current_trades': 'Current Trades',
+        'dm_blocked': '⚠️ Could not send private message to {user} - DMs blocked.',
+        'dm_error': '⚠️ Error sending private message to {user}.',
+        'trades_added': '✅ Added {amount} trade(s) for {user}. Current total: {total} trades.',
+        'trade_amount_invalid': '❌ Invalid trade amount. Use between 1 and 100.',
+        'member_not_found': '❌ Member not found or offline.',
+            
         # Erros e avisos
         'invalid_trades_count': '⚠️ You can request between 1 and 10 trades.',
         'invalid_expiry_time': '⚠️ The expiration time must be between 1 and 120 minutes.',
@@ -179,10 +199,20 @@ TRANSLATIONS = {
         'trade_error': '❌ Error al procesar intercambio',
         'trade_error_desc': 'Ocurrió un error al procesar el código **{code}**.',
         'trade_error_public': '❌ {mention} Ocurrió un error al procesar tu intercambio. Revisa tu mensaje privado para más detalles.',
-        'trade_by': 'Creado por:',
+        'trade_by': 'Creado por: Math',
         'trade_completed': 'Tu intercambio ha sido finalizado con éxito.',
         'trade_more_info': 'Para ganar más intercambios, participa en las actividades y eventos dentro del servidor.',
         
+        # DM Trade
+        'trades_received_title': '🎁 ¡Recibiste Trades!',
+        'trades_received_desc': 'Recibiste {amount} trade(s) del administrador {admin}.',
+        'current_trades': 'Trades Actuales',
+        'dm_blocked': '⚠️ No se pudo enviar mensaje privado a {user} - DMs bloqueados.',
+        'dm_error': '⚠️ Error al enviar mensaje privado a {user}.',
+        'trades_added': '✅ Añadidos {amount} trade(s) para {user}. Total actual: {total} trades.',
+        'trade_amount_invalid': '❌ Cantidad de trades inválida. Use entre 1 y 100.',
+        'member_not_found': '❌ Miembro no encontrado o desconectado.',
+    
         # Erros e avisos
         'invalid_trades_count': '⚠️ Puedes solicitar entre 1 y 10 intercambios.',
         'invalid_expiry_time': '⚠️ El tiempo de expiración debe estar entre 1 y 120 minutos.',
