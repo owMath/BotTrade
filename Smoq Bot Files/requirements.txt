@@ -1,0 +1,8 @@
+discord.py
+python-dotenv
+pymongo
+dnspython
+arrow
+translator
+requests
+english_words
