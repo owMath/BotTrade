@@ -15,7 +15,7 @@ TRANSLATIONS = {
         'trade_error': '❌ Falha ao processar trade',
         'trade_error_desc': 'Ocorreu um erro ao processar o código **{code}**.',
         'trade_error_public': '❌ {mention} Ocorreu um erro ao processar seu trade. Verifique sua mensagem privada para mais detalhes.',
-        'trade_by': 'Criado por: Math',
+        'trade_by': 'Criado por:',
         'trade_completed': 'Seu trade foi finalizado com sucesso.',
         'trade_more_info': 'Para ganhar mais trades, participe das atividades e eventos dentro do servidor.',
         
@@ -97,7 +97,7 @@ TRANSLATIONS = {
         'trade_error': '❌ Failed to process trade',
         'trade_error_desc': 'An error occurred while processing the code **{code}**.',
         'trade_error_public': '❌ {mention} An error occurred while processing your trade. Check your private message for more details.',
-        'trade_by': 'Created by: Math',
+        'trade_by': 'Created by:',
         'trade_completed': 'Your trade has been successfully completed.',
         'trade_more_info': 'To earn more trades, participate in activities and events within the server.',
         
@@ -179,7 +179,7 @@ TRANSLATIONS = {
         'trade_error': '❌ Error al procesar intercambio',
         'trade_error_desc': 'Ocurrió un error al procesar el código **{code}**.',
         'trade_error_public': '❌ {mention} Ocurrió un error al procesar tu intercambio. Revisa tu mensaje privado para más detalles.',
-        'trade_by': 'Creado por: Math',
+        'trade_by': 'Creado por:',
         'trade_completed': 'Tu intercambio ha sido finalizado con éxito.',
         'trade_more_info': 'Para ganar más intercambios, participa en las actividades y eventos dentro del servidor.',
         
