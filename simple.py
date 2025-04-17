@@ -7,11 +7,13 @@ import subprocess
 import asyncio
 from dotenv import load_dotenv
 from database import Database  # Importar a classe de banco de dados
+from translations import t, get_user_language as get_lang # Importar funções de tradução
 
 # Carregar variáveis de ambiente
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 TRADE_CHANNEL_ID = os.getenv('TRADE_CHANNEL_ID', '1362465656263544904')  # ID do canal específico para trades
+DEFAULT_LANGUAGE = os.getenv('DEFAULT_LANGUAGE', 'pt')  # Idioma padrão do bot
 
 # Inicializar a conexão com o banco de dados
 db = Database()
@@ -27,6 +29,9 @@ active_trades = {}
 user_trades = {}
 daily_claim_cooldown = {}
 users_with_active_trade = {}
+
+# Dicionário para armazenar preferências de idioma dos usuários
+user_languages = {}
 
 # Semáforo para limitar o número de trades simultâneos
 MAX_CONCURRENT_TRADES = 2
@@ -112,6 +117,10 @@ async def sync_data_to_mongodb():
             for user_id, code in users_with_active_trade.items():
                 db.set_user_active_trade(user_id, code)
                 
+            # Sincronizar preferências de idioma
+            for user_id, lang in user_languages.items():
+                db.set_user_language(user_id, lang)
+                
             print("🔄 Dados sincronizados com MongoDB")
                 
         await asyncio.sleep(300)  # Sincronizar a cada 5 minutos
@@ -122,7 +131,7 @@ def load_data_from_mongodb():
         print("⚠️ MongoDB não está conectado. Usando armazenamento em memória.")
         return
         
-    global user_trades, daily_claim_cooldown, active_trades, users_with_active_trade
+    global user_trades, daily_claim_cooldown, active_trades, users_with_active_trade, user_languages
     
     # Carregar trades de usuários
     user_trades_data = db.get_all_user_trades()
@@ -147,6 +156,12 @@ def load_data_from_mongodb():
     if users_with_active_trade_data:
         users_with_active_trade = users_with_active_trade_data
         print(f"✅ Carregados {len(users_with_active_trade)} usuários com trades ativos do MongoDB")
+        
+    # Carregar preferências de idioma
+    user_languages_data = db.get_all_user_languages()
+    if user_languages_data:
+        user_languages = user_languages_data
+        print(f"✅ Carregados {len(user_languages)} preferências de idioma do MongoDB")
 
 # ===============================================
 # Comandos de Administrador
@@ -156,25 +171,28 @@ def load_data_from_mongodb():
 @commands.has_permissions(administrator=True)  # Restringe apenas para administradores
 async def trade_command(ctx, trades_count: int = 1, expire_minutes: int = 30):
     """Comando para iniciar trades automaticamente (modo por contagem)"""
+    # Obter idioma do usuário
+    lang = get_user_language(ctx.author.id)
+    
     # Validar quantidade de trades
     if trades_count < 1 or trades_count > 10:
-        await ctx.send("⚠️ Você pode solicitar entre 1 e 10 trades.")
+        await ctx.send(t('invalid_trades_count', lang))
         return
     
     # Validar tempo de expiração
     if expire_minutes < 1 or expire_minutes > 120:
-        await ctx.send("⚠️ O tempo de expiração deve estar entre 1 e 120 minutos.")
+        await ctx.send(t('invalid_expiry_time', lang))
         return
     
     # Verificar o número de trades ativos do usuário
     user_trades_active = [code for code, info in active_trades.items() if info['user_id'] == ctx.author.id]
     if len(user_trades_active) + trades_count > 3:  # Limite de 3 trades ativos por usuário
-        await ctx.send(f"⚠️ Você só pode ter até 3 trades ativos. Você já tem {len(user_trades_active)} trade(s).")
+        await ctx.send(t('max_active_trades', lang, {'count': len(user_trades_active)}))
         return
     
     # Verificar se há trades simultâneos disponíveis
     if not trade_semaphore.locked() and trade_semaphore._value <= 0:
-        await ctx.send("⚠️ O sistema está processando muitos trades no momento. Por favor, tente novamente em alguns minutos.")
+        await ctx.send(t('system_busy', lang))
         return
     
     # Criar lista para armazenar códigos e mensagens
@@ -200,7 +218,7 @@ async def trade_command(ctx, trades_count: int = 1, expire_minutes: int = 30):
             db.set_active_trade(code, code_info)
         
         # Enviar mensagem inicial
-        initial_message = await ctx.send(f"🔄 Gerando código de trade... Código: **{code}** (expira em {expire_minutes} minutos)")
+        initial_message = await ctx.send(t('trade_code_generated', lang, {'code': code, 'minutes': expire_minutes}))
         trade_messages.append((code, initial_message))
     
     # Processar trades em paralelo
@@ -213,25 +231,28 @@ async def trade_command(ctx, trades_count: int = 1, expire_minutes: int = 30):
 @commands.has_permissions(administrator=True)  # Restringe apenas para administradores
 async def timemode_command(ctx, duration: int = 30, expire_minutes: int = 30):
     """Comando para iniciar trades em modo tempo (processando por X minutos)"""
+    # Obter idioma do usuário
+    lang = get_user_language(ctx.author.id)
+    
     # Validar duração
     if duration < 1 or duration > 120:
-        await ctx.send("⚠️ A duração do processamento deve estar entre 1 e 120 minutos.")
+        await ctx.send(t('invalid_duration', lang))
         return
     
     # Validar tempo de expiração
     if expire_minutes < 1 or expire_minutes > 120:
-        await ctx.send("⚠️ O tempo de expiração deve estar entre 1 e 120 minutos.")
+        await ctx.send(t('invalid_expiry_time', lang))
         return
     
     # Verificar o número de trades ativos do usuário
     user_trades_active = [code for code, info in active_trades.items() if info['user_id'] == ctx.author.id]
     if len(user_trades_active) >= 3:  # Limite de 3 trades ativos por usuário
-        await ctx.send(f"⚠️ Você só pode ter até 3 trades ativos. Você já tem {len(user_trades_active)} trade(s).")
+        await ctx.send(t('max_active_trades', lang, {'count': len(user_trades_active)}))
         return
     
     # Verificar se há trades simultâneos disponíveis
     if not trade_semaphore.locked() and trade_semaphore._value <= 0:
-        await ctx.send("⚠️ O sistema está processando muitos trades no momento. Por favor, tente novamente em alguns minutos.")
+        await ctx.send(t('system_busy', lang))
         return
     
     # Gerar um código para o modo tempo
@@ -254,7 +275,7 @@ async def timemode_command(ctx, duration: int = 30, expire_minutes: int = 30):
         db.set_active_trade(code, code_info)
     
     # Enviar mensagem inicial
-    initial_message = await ctx.send(f"🔄 Iniciando modo tempo com código: **{code}** | Processando trades por {duration} minutos (expira em {expire_minutes} min)")
+    initial_message = await ctx.send(t('trade_time_mode', lang, {'code': code, 'duration': duration, 'minutes': expire_minutes}))
     
     # Processar o trade em modo tempo
     await process_trade(ctx, code, initial_message)
@@ -265,6 +286,9 @@ async def timemode_command(ctx, duration: int = 30, expire_minutes: int = 30):
 @commands.has_permissions(administrator=True)  # Restringe apenas para administradores
 async def status_command(ctx, code=None):
     """Comando para verificar o status de um código (apenas para administradores)"""
+    # Obter idioma do usuário
+    lang = get_user_language(ctx.author.id)
+    
     if not code:
         # Procurar códigos ativos do usuário
         user_trades_active = [
@@ -273,12 +297,12 @@ async def status_command(ctx, code=None):
         ]
         
         if not user_trades_active:
-            await ctx.send("❌ Você não tem trades ativos no momento.")
+            await ctx.send(t('no_active_trades', lang))
             return
         
         embed = discord.Embed(
-            title="🔍 Seus Trades Ativos",
-            description=f"Você tem {len(user_trades_active)} trade(s) ativo(s):",
+            title=t('embed_active_trades', lang),
+            description=t('embed_active_trades_desc', lang, {'count': len(user_trades_active)}),
             color=0x0088ff
         )
         
@@ -290,15 +314,15 @@ async def status_command(ctx, code=None):
             
             status_text = info['status']
             if status_text == 'pending':
-                status_text = "Aguardando processamento"
+                status_text = t('status_pending', lang)
             elif status_text == 'processing':
-                status_text = "Em processamento"
+                status_text = t('status_processing', lang)
             elif status_text == 'completed':
-                status_text = "✅ Concluído com sucesso"
+                status_text = t('status_completed', lang)
             elif status_text == 'failed':
-                status_text = "❌ Falha no processamento"
+                status_text = t('status_failed', lang)
             
-            mode_text = "Modo tempo" if info.get('mode') == 'time' else "Modo trades"
+            mode_text = t('mode_time', lang) if info.get('mode') == 'time' else t('mode_trades', lang)
             
             embed.add_field(
                 name=f"Código: {code}",
@@ -311,14 +335,14 @@ async def status_command(ctx, code=None):
     
     # Verificar um código específico
     if code not in active_trades:
-        await ctx.send(f"❌ Código não encontrado: {code}")
+        await ctx.send(t('code_not_found', lang, {'code': code}))
         return
     
     code_info = active_trades[code]
     
     # Verificar se o usuário é o dono do código ou um administrador
     if code_info['user_id'] != ctx.author.id and not ctx.author.guild_permissions.administrator:
-        await ctx.send("❌ Este código não pertence a você.")
+        await ctx.send(t('not_your_code', lang))
         return
     
     # Verificar status do código
@@ -329,19 +353,19 @@ async def status_command(ctx, code=None):
     
     status_text = code_info['status']
     if status_text == 'pending':
-        status_text = "Aguardando processamento"
+        status_text = t('status_pending', lang)
     elif status_text == 'processing':
-        status_text = "Em processamento"
+        status_text = t('status_processing', lang)
     elif status_text == 'completed':
-        status_text = "✅ Concluído com sucesso"
+        status_text = t('status_completed', lang)
     elif status_text == 'failed':
-        status_text = "❌ Falha no processamento"
+        status_text = t('status_failed', lang)
     
-    mode_text = "Modo tempo" if code_info.get('mode') == 'time' else "Modo trades"
+    mode_text = t('mode_time', lang) if code_info.get('mode') == 'time' else t('mode_trades', lang)
     duration = code_info.get('duration', None)
     
     embed = discord.Embed(
-        title=f"🔍 Status do Trade: {code}",
+        title=t('embed_trade_status', lang, {'code': code}),
         color=0x0088ff
     )
     embed.add_field(name="Status", value=status_text, inline=False)
@@ -360,8 +384,11 @@ async def status_command(ctx, code=None):
 @commands.has_permissions(administrator=True)  # Restringe apenas para administradores
 async def givetrade_command(ctx, member: discord.Member, amount: int = 1):
     """Comando para administradores darem trades a um usuário"""
+    # Obter idioma do usuário
+    lang = get_user_language(ctx.author.id)
+    
     if amount < 1 or amount > 100:
-        await ctx.send("⚠️ A quantidade de trades deve estar entre 1 e 100.")
+        await ctx.send(t('trade_amount_invalid', lang))
         return
     
     # Inicializa o dicionário do usuário se não existir
@@ -375,13 +402,15 @@ async def givetrade_command(ctx, member: discord.Member, amount: int = 1):
     if db.is_connected():
         db.increment_user_trades(member.id, amount)
     
-    await ctx.send(f"✅ {amount} trade(s) adicionado(s) para {member.display_name}. Total atual: **{user_trades[member.id]}**")
+    await ctx.send(t('trades_added', lang, {'amount': amount, 'user': member.display_name, 'total': user_trades[member.id]}))
 
 @bot.command(name='listtrades')
 @in_trade_channel()  # Verifica se o comando está sendo usado no canal correto
 async def listtrades_command(ctx):
     """Comando para usuários verificarem quantos trades possuem"""
     user_id = ctx.author.id
+    # Obter idioma do usuário
+    lang = get_user_language(user_id)
     
     # Verificar no MongoDB primeiro se estiver conectado
     if db.is_connected():
@@ -391,16 +420,19 @@ async def listtrades_command(ctx):
             user_trades[user_id] = mongo_trades
     
     if user_id not in user_trades or user_trades[user_id] <= 0:
-        await ctx.send(f"❌ Você não possui trades disponíveis. Use `!claimtrade` para obter trades diários ou peça a um administrador.")
+        await ctx.send(t('no_trades_available', lang))
         return
     
-    await ctx.send(f"🎮 Você possui **{user_trades[user_id]}** trade(s) disponível(is).")
+    await ctx.send(t('trades_available', lang, {'count': user_trades[user_id]}))
 
 @bot.command(name='claimtrade')
 @in_trade_channel()  # Verifica se o comando está sendo usado no canal correto
 async def claimtrade_command(ctx):
     """Comando para usuários obterem trades diários (5 trades a cada 24 horas)"""
     user_id = ctx.author.id
+    # Obter idioma do usuário
+    lang = get_user_language(user_id)
+    
     current_time = datetime.datetime.now()
     
     # Verificar no MongoDB primeiro se estiver conectado
@@ -417,7 +449,10 @@ async def claimtrade_command(ctx):
         # Verifica se já passaram 24 horas desde o último claim
         if time_diff.total_seconds() < 86400:  # 24 horas em segundos
             hours_left = 24 - (time_diff.total_seconds() / 3600)
-            await ctx.send(f"⏰ Você já recebeu seus trades diários. Aguarde **{int(hours_left)} horas e {int((hours_left % 1) * 60)} minutos** para receber novamente.")
+            await ctx.send(t('cooldown_active', lang, {
+                'hours': int(hours_left),
+                'minutes': int((hours_left % 1) * 60)
+            }))
             return
     
     # Inicializa o dicionário do usuário se não existir
@@ -433,13 +468,15 @@ async def claimtrade_command(ctx):
         db.increment_user_trades(user_id, 5)
         db.set_last_claim_time(user_id, current_time)
     
-    await ctx.send(f"🎁 Você recebeu **5 trades diários**! Agora você possui **{user_trades[user_id]}** trade(s).")
+    await ctx.send(t('trades_claimed', lang, {'total': user_trades[user_id]}))
 
 @bot.command(name='usetrade')
 @in_trade_channel()  # Verifica se o comando está sendo usado no canal correto
 async def usetrade_command(ctx, trades_amount: int = 2):
     """Comando para usuários usarem um trade disponível com quantidade específica de trades"""
     user_id = ctx.author.id
+    # Obter idioma do usuário
+    lang = get_user_language(user_id)
     
     # Verificar no MongoDB primeiro se estiver conectado
     if db.is_connected():
@@ -457,29 +494,29 @@ async def usetrade_command(ctx, trades_amount: int = 2):
     if user_id in users_with_active_trade:
         active_code = users_with_active_trade[user_id]
         # Send this message as a DM
-        await ctx.author.send(f"⚠️ Você já possui um trade ativo com o código **{active_code}**. Aguarde até que ele seja concluído antes de usar outro trade.")
+        await ctx.author.send(t('trade_already_active', lang, {'code': active_code}))
         # Add a reaction to indicate a DM was sent
         await ctx.message.add_reaction('✉️')
         return
     
     # Validar quantidade de trades
     if trades_amount < 1 or trades_amount > 10:
-        await ctx.send("⚠️ A quantidade de trades deve estar entre 1 e 10.")
+        await ctx.send(t('invalid_trades_count', lang))
         return
     
     # Verifica se o usuário tem trades suficientes para a quantidade solicitada
     if user_id not in user_trades or user_trades[user_id] <= 0:
-        await ctx.send("❌ Você não possui trades disponíveis. Use `!claimtrade` para obter trades diários ou peça a um administrador.")
+        await ctx.send(t('no_trades_available', lang))
         return
     
     # Verifica se o usuário tem trades suficientes para a quantidade solicitada
     if user_trades[user_id] < trades_amount:
-        await ctx.send(f"❌ Você não possui trades suficientes. Você tem {user_trades[user_id]} trade(s) disponível(is), mas solicitou {trades_amount}.")
+        await ctx.send(t('not_enough_trades', lang, {'available': user_trades[user_id], 'requested': trades_amount}))
         return
     
     # Verificar se há trades simultâneos disponíveis
     if not trade_semaphore.locked() and trade_semaphore._value <= 0:
-        await ctx.send("⚠️ O sistema está processando muitos trades no momento. Por favor, tente novamente em alguns minutos.")
+        await ctx.send(t('system_busy', lang))
         return
     
     # Gerar um código para o trade
@@ -512,10 +549,10 @@ async def usetrade_command(ctx, trades_amount: int = 2):
         db.set_active_trade(code, code_info)
     
     # Send a public message without the code
-    await ctx.send(f"🔄 Gerando um trade com {trades_amount} trocas para {ctx.author.mention}... Detalhes enviados por mensagem privada.")
+    await ctx.send(t('generating_trades', lang, {'amount': trades_amount, 'mention': ctx.author.mention}))
     
     # Send the sensitive code information via DM
-    dm_message = await ctx.author.send(f"🔄 Gerando código de trade... Código: **{code}** (expira em {expire_minutes} minutos, quantidade: {trades_amount} trades)")
+    dm_message = await ctx.author.send(t('trade_processing', lang, {'amount': trades_amount, 'code': code}))
     
     # Add a reaction to indicate that a DM was sent
     await ctx.message.add_reaction('✉️')
@@ -531,7 +568,7 @@ async def usetrade_command(ctx, trades_amount: int = 2):
         db.decrement_user_trades(user_id, trades_amount)
     
     # Informar quantos trades restantes o usuário tem via DM
-    await ctx.author.send(f"ℹ️ Trade utilizado! Você ainda possui **{user_trades[user_id]}** trade(s) disponível(is).")
+    await ctx.author.send(t('trades_used', lang, {'count': user_trades[user_id]}))
     
     # Remover usuário do dicionário de usuários com trades ativos
     if user_id in users_with_active_trade:
@@ -541,8 +578,72 @@ async def usetrade_command(ctx, trades_amount: int = 2):
         if db.is_connected():
             db.remove_user_active_trade(user_id)
 
+# ===============================================
+# Comandos de Idioma
+# ===============================================
+
+@bot.command(name='lang', aliases=['language', 'idioma', 'idiomas'])
+async def language_command(ctx, language_code=None):
+    """Comando para definir ou verificar o idioma preferido"""
+    user_id = ctx.author.id
+    
+    # Se não foi especificado um código de idioma, mostrar o atual
+    if not language_code:
+        current_lang = get_user_language(user_id)
+        lang_names = {
+            'pt': 'Português',
+            'en': 'English',
+            'es': 'Español'
+        }
+        lang_name = lang_names.get(current_lang, current_lang)
+        
+        # Obter o idioma para mostrar a mensagem
+        await ctx.send(t('current_language', current_lang, {'language': lang_name}))
+        
+        # Mostrar idiomas disponíveis
+        available_langs = ', '.join([f"{code} ({lang_names[code]})" for code in ['pt', 'en', 'es']])
+        await ctx.send(t('available_languages', current_lang, {'languages': available_langs}))
+        return
+    
+    # Verificar se o código de idioma é válido
+    language_code = language_code.lower()
+    if language_code not in ['pt', 'en', 'es']:
+        # Obter o idioma atual para a mensagem de erro
+        current_lang = get_user_language(user_id)
+        await ctx.send(t('invalid_language', current_lang, {'code': language_code}))
+        return
+    
+    # Atualizar o idioma do usuário
+    user_languages[user_id] = language_code
+    
+    # Atualizar no MongoDB
+    if db.is_connected():
+        db.set_user_language(user_id, language_code)
+    
+    # Confirmar a alteração no novo idioma
+    lang_names = {
+        'pt': 'Português',
+        'en': 'English',
+        'es': 'Español'
+    }
+    await ctx.send(t('language_updated', language_code, {'language': lang_names[language_code]}))
+
+def get_user_language(user_id):
+    """Obtém o idioma preferido de um usuário"""
+    # Verificar no MongoDB primeiro se estiver conectado
+    if db.is_connected():
+        mongo_lang = db.get_user_language(user_id)
+        if mongo_lang:
+            user_languages[user_id] = mongo_lang
+    
+    # Retornar o idioma do usuário ou o padrão
+    return user_languages.get(user_id, DEFAULT_LANGUAGE)
+
 async def process_trade_with_dm(ctx, code, dm_message, trades_amount):
     """Processa um trade em segundo plano e envia atualizações via DM"""
+    # Obter idioma do usuário
+    lang = get_user_language(ctx.author.id)
+    
     # Obter informações do código
     code_info = active_trades[code]
     expire_minutes = code_info.get('expire_minutes', 60)
@@ -554,7 +655,7 @@ async def process_trade_with_dm(ctx, code, dm_message, trades_amount):
     if db.is_connected():
         db.update_active_trade_status(code, 'processing')
     
-    await dm_message.edit(content=f"⌛ Processando {trades_amount} trade(s) com código: **{code}**... Isso pode levar alguns segundos.")
+    await dm_message.edit(content=t('trade_processing', lang, {'amount': trades_amount, 'code': code}))
     
     # Adquirir semáforo para limitar trades simultâneos
     async with trade_semaphore:
@@ -578,19 +679,19 @@ async def process_trade_with_dm(ctx, code, dm_message, trades_amount):
                 
                 # Criar embed com o resultado
                 embed = discord.Embed(
-                    title="✅ Trade Configurado com Sucesso!",
-                    description=f"Seu código de trade foi processado para {trades_amount} trade(s).",
+                    title=t('trade_success', lang),
+                    description=t('trade_success_desc', lang, {'amount': trades_amount}),
                     color=0x00ff00
                 )
                 embed.add_field(name="Código", value=f"**{code}**", inline=False)
                 
                 embed.add_field(
-                    name="Seu trade foi finalizado com sucesso.", 
-                    value="Para ganhar mais trades, participe das atividades e eventos dentro do servidor.", 
+                    name=t('trade_completed', lang), 
+                    value=t('trade_more_info', lang), 
                     inline=False
                 )
                 embed.add_field(
-                    name="Criado por:", 
+                    name=t('trade_by', lang), 
                     value=f"Math", 
                     inline=False
                 )
@@ -608,13 +709,13 @@ async def process_trade_with_dm(ctx, code, dm_message, trades_amount):
                 
                 # Also send a simpler public confirmation (without the code)
                 public_embed = discord.Embed(
-                    title="✅ Trade Configurado com Sucesso!",
-                    description=f"{ctx.author.mention} Você finalizou todos seus trades com sucesso.",
+                    title=t('trade_success', lang),
+                    description=t('trade_success_public', lang, {'mention': ctx.author.mention}),
                     color=0x00ff00
                 )
                 public_embed.add_field(
                     name="Detalhes", 
-                    value="Os detalhes foram enviados por mensagem privada.", 
+                    value=t('trade_details_sent', lang), 
                     inline=False
                 )
                 await ctx.send(embed=public_embed)
@@ -631,8 +732,8 @@ async def process_trade_with_dm(ctx, code, dm_message, trades_amount):
                 
                 # Criar embed com o erro
                 embed = discord.Embed(
-                    title="❌ Falha ao processar trade",
-                    description=f"Ocorreu um erro ao processar o código **{code}**.",
+                    title=t('trade_error', lang),
+                    description=t('trade_error_desc', lang, {'code': code}),
                     color=0xff0000
                 )
                 
@@ -646,7 +747,7 @@ async def process_trade_with_dm(ctx, code, dm_message, trades_amount):
                 await dm_message.edit(content=None, embed=embed)
                 
                 # Also notify about the error in public (without the code)
-                await ctx.send(f"❌ {ctx.author.mention} Ocorreu um erro ao processar seu trade. Verifique sua mensagem privada para mais detalhes.")
+                await ctx.send(t('trade_error_public', lang, {'mention': ctx.author.mention}))
                 
         except Exception as e:
             code_info['status'] = 'failed'
@@ -659,48 +760,54 @@ async def process_trade_with_dm(ctx, code, dm_message, trades_amount):
             await dm_message.edit(content=f"❌ Erro ao processar trade: {str(e)}")
             
             # Also notify about the error in public
-            await ctx.send(f"❌ {ctx.author.mention} Ocorreu um erro ao processar seu trade. Verifique sua mensagem privada para mais detalhes.")
+            await ctx.send(t('trade_error_public', lang, {'mention': ctx.author.mention}))
 
 # Update your process_trade variable to use the new DM function
 process_trade = process_trade_with_dm   # You can keep this for admin commands
-            
-            
+
 @bot.command(name='ajuda')
 async def help_command(ctx):
     """Exibe ajuda sobre os comandos do bot"""
+    # Obter idioma do usuário
+    lang = get_user_language(ctx.author.id)
+    
     if ctx.author.guild_permissions.administrator:
         # Se for admin, mostra também a ajuda de admin
         await adminhelp_command(ctx)
     
     embed = discord.Embed(
-        title="📚 Ajuda do Bot de Trades",
-        description="Aqui estão os comandos disponíveis para todos os usuários:",
+        title=t('embed_help_title', lang),
+        description=t('embed_help_desc', lang),
         color=0xffbb00
     )
     
     embed.add_field(
         name="!listtrades", 
-        value="Mostra quantos trades você tem disponíveis.", 
+        value=t('help_listtrades', lang), 
         inline=False
     )
     
     embed.add_field(
         name="!claimtrade", 
-        value="Recebe seus 5 trades diários (disponível a cada 24 horas).", 
+        value=t('help_claimtrade', lang), 
         inline=False
     )
     
     embed.add_field(
         name="!usetrade [quantidade]", 
-        value="Usa um dos seus trades disponíveis e gera um código para processar a quantidade especificada de trades.\n" +
-              "Exemplo: `!usetrade 2` - Usa um trade para processar 2 trades.\n" +
-              "⚠️ Você só pode ter um trade ativo por vez. Aguarde o processamento para usar outro.",
+        value=t('help_usetrade', lang),
         inline=False
     )
     
     embed.add_field(
         name="!ajuda", 
-        value="Exibe esta mensagem de ajuda", 
+        value=t('help_help', lang), 
+        inline=False
+    )
+    
+    embed.add_field(
+        name="!lang [pt/en/es]", 
+        value=t('help_lang', lang), 
         inline=False
     )
     
@@ -710,36 +817,36 @@ async def help_command(ctx):
 @commands.has_permissions(administrator=True)  # Restringe apenas para administradores
 async def adminhelp_command(ctx):
     """Exibe ajuda sobre os comandos de administrador"""
+    # Obter idioma do usuário
+    lang = get_user_language(ctx.author.id)
+    
     embed = discord.Embed(
-        title="🔒 Comandos de Administrador",
-        description="Comandos disponíveis apenas para administradores:",
+        title=t('embed_admin_help', lang),
+        description=t('embed_admin_help_desc', lang),
         color=0xff5500
     )
     
     embed.add_field(
         name="!trade [quantidade] [tempo_expiração]", 
-        value="Gera novos códigos de trade e inicia o processamento automaticamente.\n" +
-              "Exemplo: `!trade 3 60` - Gera 3 trades que expiram em 60 minutos.", 
+        value=t('help_trade', lang), 
         inline=False
     )
     
     embed.add_field(
         name="!timemode [duração] [tempo_expiração]", 
-        value="Inicia o processamento contínuo de trades por um período específico.\n" +
-              "Exemplo: `!timemode 20 60` - Processa trades por 20 minutos com um código que expira em 60 minutos.", 
+        value=t('help_timemode', lang), 
         inline=False
     )
     
     embed.add_field(
         name="!status [código]", 
-        value="Verifica o status de um trade específico. Se não for fornecido um código, mostra todos os seus trades ativos.", 
+        value=t('help_status', lang), 
         inline=False
     )
     
     embed.add_field(
         name="!givetrade [@usuário] [quantidade]", 
-        value="Dá uma quantidade específica de trades para um usuário.\n" +
-              "Exemplo: `!givetrade @João 10` - Dá 10 trades para o usuário João.", 
+        value=t('help_givetrade', lang), 
         inline=False
     )
     
@@ -749,16 +856,19 @@ async def adminhelp_command(ctx):
 @commands.has_permissions(administrator=True)  # Restringe apenas para administradores
 async def helpdb_command(ctx):
     """Exibe informações sobre o status da conexão com o banco de dados"""
+    # Obter idioma do usuário
+    lang = get_user_language(ctx.author.id)
+    
     embed = discord.Embed(
-        title="🗄️ Status do Banco de Dados",
+        title=t('embed_db_status', lang),
         color=0x0088ff
     )
     
     if db.is_connected():
-        embed.description = "✅ Conexão com MongoDB estabelecida com sucesso!"
+        embed.description = t('db_connected', lang)
         embed.add_field(
             name="Informações", 
-            value="Os dados de trades e cooldowns de usuários estão sendo persistidos no MongoDB.", 
+            value=t('db_info', lang), 
             inline=False
         )
         
@@ -770,22 +880,24 @@ async def helpdb_command(ctx):
         
         embed.add_field(
             name="Estatísticas", 
-            value=f"- Usuários com trades: {user_trades_count}\n" +
-                  f"- Usuários com cooldown: {daily_cooldown_count}\n" +
-                  f"- Trades ativos: {active_trades_count}\n" +
-                  f"- Usuários com trades em andamento: {active_users_count}",
+            value=t('db_stats', lang, {
+                'users': user_trades_count,
+                'cooldowns': daily_cooldown_count,
+                'active': active_trades_count,
+                'in_progress': active_users_count
+            }),
             inline=False
         )
     else:
-        embed.description = "⚠️ MongoDB não está conectado!"
+        embed.description = t('db_disconnected', lang)
         embed.add_field(
             name="Atenção", 
-            value="O bot está operando com armazenamento em memória. Os dados serão perdidos quando o bot for reiniciado.", 
+            value=t('db_memory_warning', lang), 
             inline=False
         )
         embed.add_field(
             name="Solução", 
-            value="Configure a variável de ambiente `MONGO_URI` no arquivo `.env` para habilitar a persistência de dados.", 
+            value=t('db_solution', lang), 
             inline=False
         )
     
@@ -810,23 +922,29 @@ async def on_trade_completed(user_id, code):
 @adminhelp_command.error
 @helpdb_command.error
 async def admin_command_error(ctx, error):
+    # Obter idioma do usuário
+    lang = get_user_language(ctx.author.id)
+    
     if isinstance(error, commands.MissingPermissions):
-        await ctx.send("❌ Este comando está disponível apenas para administradores.")
+        await ctx.send(t('admin_only', lang))
 
 # Adicionar função de tratamento de erros para explicar quando comandos devem ser usados no canal correto
 @listtrades_command.error
 @claimtrade_command.error
 @usetrade_command.error
 async def channel_command_error(ctx, error):
+    # Obter idioma do usuário
+    lang = get_user_language(ctx.author.id)
+    
     if isinstance(error, commands.CheckFailure):
         if TRADE_CHANNEL_ID:
             trade_channel = bot.get_channel(int(TRADE_CHANNEL_ID))
             if trade_channel:
-                await ctx.send(f"❌ Este comando deve ser usado no canal {trade_channel.mention}.")
+                await ctx.send(t('wrong_channel', lang, {'channel': trade_channel.mention}))
             else:
-                await ctx.send("❌ Este comando deve ser usado no canal de trades designado.")
+                await ctx.send(t('command_unavailable', lang))
         else:
-            await ctx.send("❌ Este comando não pode ser usado neste contexto.")
+            await ctx.send(t('command_unavailable', lang))
 
 async def cleanup_expired_trades():
     """Remove trades expirados do dicionário"""
@@ -896,5 +1014,10 @@ if __name__ == "__main__":
     # Verificar se TRADE_CHANNEL_ID está configurado
     if not TRADE_CHANNEL_ID:
         print("⚠️ TRADE_CHANNEL_ID não está configurado. Comandos de usuário funcionarão em qualquer canal.")
+    
+    # Definir o idioma padrão do bot
+    from translator import set_lang
+    set_lang(DEFAULT_LANGUAGE)
+    print(f"🌐 Idioma padrão do bot: {DEFAULT_LANGUAGE}")
     
     bot.run(TOKEN)
