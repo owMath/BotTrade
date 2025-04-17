@@ -391,6 +391,11 @@ async def givetrade_command(ctx, member: discord.Member, amount: int = 1):
     # Obter idioma do usuário
     lang = get_user_language(ctx.author.id)
     
+    # Caso o membro esteja offline ou com privacidade bloqueada
+    if not member:
+        await ctx.send(t('member_not_found', lang))
+        return
+    
     if amount < 1 or amount > 100:
         await ctx.send(t('trade_amount_invalid', lang))
         return
@@ -406,7 +411,38 @@ async def givetrade_command(ctx, member: discord.Member, amount: int = 1):
     if db.is_connected():
         db.increment_user_trades(member.id, amount)
     
+    # Mensagem pública no canal
     await ctx.send(t('trades_added', lang, {'amount': amount, 'user': member.display_name, 'total': user_trades[member.id]}))
+    
+    # Enviar mensagem privada para o usuário que recebeu os trades
+    try:
+        # Criar embed para a mensagem privada
+        embed = discord.Embed(
+            title=t('trades_received_title', lang),
+            description=t('trades_received_desc', lang, {
+                'amount': amount, 
+                'admin': ctx.author.display_name
+            }),
+            color=0x00ff00  # Verde
+        )
+        
+        # Campos adicionais no embed
+        embed.add_field(
+            name=t('current_trades', lang), 
+            value=str(user_trades[member.id]), 
+            inline=False
+        )
+        
+        # Enviar mensagem via DM
+        await member.send(embed=embed)
+        
+    except discord.Forbidden:
+        # Se o usuário tiver DMs desativadas, notificar o admin
+        await ctx.send(t('dm_blocked', lang, {'user': member.mention}))
+    except Exception as e:
+        # Lidar com outros possíveis erros de envio de DM
+        print(f"Erro ao enviar DM: {e}")
+        await ctx.send(t('dm_error', lang, {'user': member.mention}))
 
 @bot.command(name='listtrades')
 @in_trade_channel()  # Verifica se o comando está sendo usado no canal correto
