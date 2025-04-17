@@ -30,12 +30,16 @@ class Database:
             self.daily_claim_collection = self.db['daily_claims']
             self.active_trades_collection = self.db['active_trades']
             self.active_users_collection = self.db['active_users']
+            self.user_languages_collection = self.db['user_languages']
+            self.guild_languages_collection = self.db['guild_languages']
             
             # Criar índices para otimizar consultas
             self.user_trades_collection.create_index('user_id', unique=True)
             self.daily_claim_collection.create_index('user_id', unique=True)
             self.active_trades_collection.create_index('code', unique=True)
             self.active_users_collection.create_index('user_id', unique=True)
+            self.user_languages_collection.create_index('user_id', unique=True)
+            self.guild_languages_collection.create_index('guild_id', unique=True)
             
             print("✅ Conexão com MongoDB estabelecida com sucesso")
             
@@ -314,3 +318,178 @@ class Database:
         for doc in self.active_users_collection.find():
             result[doc['user_id']] = doc['active_code']
         return result
+    
+    # ===============================================
+    # Operações para Preferências de Idioma
+    # ===============================================
+    
+    def set_user_language(self, user_id, language):
+        """
+        Define o idioma preferido de um usuário
+        
+        Args:
+            user_id (int): ID do usuário
+            language (str): Código do idioma (pt, en, es)
+        """
+        if not self.is_connected():
+            return False
+            
+        try:
+            self.user_languages_collection.update_one(
+                {"user_id": user_id},
+                {"$set": {
+                    "user_id": user_id, 
+                    "language": language, 
+                    "updated_at": datetime.datetime.now()
+                }},
+                upsert=True
+            )
+            return True
+        except Exception as e:
+            print(f"❌ Erro ao definir idioma do usuário: {e}")
+            return False
+    
+    def get_user_language(self, user_id):
+        """
+        Obtém o idioma preferido de um usuário
+        
+        Args:
+            user_id (int): ID do usuário
+            
+        Returns:
+            str: Código do idioma ou None se não estiver definido
+        """
+        if not self.is_connected():
+            return None
+            
+        try:
+            result = self.user_languages_collection.find_one({"user_id": user_id})
+            if result:
+                return result.get("language")
+            return None
+        except Exception as e:
+            print(f"❌ Erro ao obter idioma do usuário: {e}")
+            return None
+    
+    def get_user_languages(self):
+        """
+        Obtém todas as preferências de idioma dos usuários
+        
+        Returns:
+            dict: Dicionário com IDs de usuários como chaves e códigos de idioma como valores
+        """
+        if not self.is_connected():
+            return {}
+        
+        try:
+            user_languages = {}
+            # Corrigir consulta no MongoDB
+            for doc in self.user_languages_collection.find():
+                user_id = doc.get("user_id")
+                language = doc.get("language")
+                if user_id and language:
+                    user_languages[user_id] = language
+            return user_languages
+        except Exception as e:
+            print(f"❌ Erro ao obter idiomas dos usuários: {e}")
+            return {}
+    
+    # Método de fallback para get_all_user_languages
+    def get_all_user_languages(self):
+        """
+        Método de compatibilidade para chamadas antigas
+        """
+        return self.get_user_languages()
+                
+    def delete_user_language(self, user_id):
+        """
+        Remove a preferência de idioma de um usuário
+        
+        Args:
+            user_id (int): ID do usuário
+            
+        Returns:
+            bool: True se bem-sucedido, False caso contrário
+        """
+        if not self.is_connected():
+            return False
+            
+        try:
+            self.user_languages_collection.delete_one({"user_id": user_id})
+            return True
+        except Exception as e:
+            print(f"❌ Erro ao excluir idioma do usuário: {e}")
+            return False
+            
+    def set_guild_language(self, guild_id, language):
+        """
+        Define o idioma padrão de um servidor
+        
+        Args:
+            guild_id (int): ID do servidor
+            language (str): Código do idioma (pt, en, es)
+            
+        Returns:
+            bool: True se bem-sucedido, False caso contrário
+        """
+        if not self.is_connected():
+            return False
+            
+        try:
+            self.guild_languages_collection.update_one(
+                {"guild_id": guild_id},
+                {"$set": {
+                    "guild_id": guild_id, 
+                    "language": language, 
+                    "updated_at": datetime.datetime.now()
+                }},
+                upsert=True
+            )
+            return True
+        except Exception as e:
+            print(f"❌ Erro ao definir idioma do servidor: {e}")
+            return False
+            
+    def get_guild_language(self, guild_id):
+        """
+        Obtém o idioma padrão de um servidor
+        
+        Args:
+            guild_id (int): ID do servidor
+            
+        Returns:
+            str: Código do idioma ou None se não estiver definido
+        """
+        if not self.is_connected():
+            return None
+            
+        try:
+            result = self.guild_languages_collection.find_one({"guild_id": guild_id})
+            if result:
+                return result.get("language")
+            return None
+        except Exception as e:
+            print(f"❌ Erro ao obter idioma do servidor: {e}")
+            return None
+            
+    def get_all_guild_languages(self):
+        """
+        Obtém todas as preferências de idioma dos servidores
+        
+        Returns:
+            dict: Dicionário com IDs de servidores como chaves e códigos de idioma como valores
+        """
+        if not self.is_connected():
+            return {}
+            
+        try:
+            guild_languages = {}
+            for doc in self.guild_languages_collection.find():
+                guild_id = doc["guild_id"]
+                language = doc.get("language")
+                if language:
+                    guild_languages[guild_id] = language
+            return guild_languages
+        except Exception as e:
+            print(f"❌ Erro ao obter idiomas dos servidores: {e}")
+            return {}

@@ -12,7 +12,7 @@ from translations import t, get_user_language as get_lang # Importar funções d
 # Carregar variáveis de ambiente
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
-TRADE_CHANNEL_ID = os.getenv('TRADE_CHANNEL_ID', '1362465656263544904')  # ID do canal específico para trades
+TRADE_CHANNEL_ID = os.getenv('TRADE_CHANNEL_ID', '1362490549528957140')  # ID do canal específico para trades
 DEFAULT_LANGUAGE = os.getenv('DEFAULT_LANGUAGE', 'pt')  # Idioma padrão do bot
 
 # Inicializar a conexão com o banco de dados
@@ -157,11 +157,15 @@ def load_data_from_mongodb():
         users_with_active_trade = users_with_active_trade_data
         print(f"✅ Carregados {len(users_with_active_trade)} usuários com trades ativos do MongoDB")
         
-    # Carregar preferências de idioma
-    user_languages_data = db.get_all_user_languages()
-    if user_languages_data:
-        user_languages = user_languages_data
-        print(f"✅ Carregados {len(user_languages)} preferências de idioma do MongoDB")
+    try:
+        # Carregar preferências de idioma
+        user_languages_data = db.get_user_languages()  # Usar o novo método
+        if user_languages_data:
+            user_languages = user_languages_data
+            print(f"✅ Carregados {len(user_languages)} preferências de idioma do MongoDB")
+    except Exception as e:
+            print(f"❌ Erro ao carregar preferências de idioma: {e}")
+            user_languages = {}
 
 # ===============================================
 # Comandos de Administrador
