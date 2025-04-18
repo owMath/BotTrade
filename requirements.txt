@@ -6,3 +6,4 @@ arrow
 translator
 requests
 english_words
+flask
