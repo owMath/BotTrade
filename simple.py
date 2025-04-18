@@ -698,6 +698,10 @@ async def givetrade_command(ctx, member: discord.Member, amount: int = 1):
     # Mensagem pública no canal
     await ctx.send(t('trades_added', lang, {'amount': amount, 'user': member.display_name, 'total': user_trades[member.id]}))
     
+    # Obter o objeto do canal de trades
+    trade_channel = None
+    if TRADE_CHANNEL_ID:
+        trade_channel = bot.get_channel(int(TRADE_CHANNEL_ID))
     # Enviar mensagem privada para o usuário que recebeu os trades
     try:
         # Criar embed para a mensagem privada
@@ -705,10 +709,11 @@ async def givetrade_command(ctx, member: discord.Member, amount: int = 1):
             title=t('trades_received_title', lang),
             description=t('trades_received_desc', lang, {
                 'amount': amount, 
-                'admin': ctx.author.display_name
+                'admin': ctx.author.display_name,  # Note a vírgula aqui
+                'channel': trade_channel.mention if trade_channel else "#trades"
             }),
             color=0x00ff00  # Verde
-        )
+            )
         
         # Campos adicionais no embed
         embed.add_field(

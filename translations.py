@@ -81,7 +81,7 @@ TRANSLATIONS = {
 
         # DM Trade
         'trades_received_title': '🎁 Você recebeu Trades!',
-        'trades_received_desc': 'Você recebeu {amount} trade(s) do administrador {admin}.',
+        'trades_received_desc': 'Você recebeu {amount} trade(s) do administrador {admin}. Use seus trades no {channel}!',
         'current_trades': 'Trades Atuais',
         'dm_blocked': '⚠️ Não foi possível enviar mensagem privada para {user} - DMs bloqueadas.',
         'dm_error': '⚠️ Erro ao enviar mensagem privada para {user}.',
@@ -234,7 +234,7 @@ TRANSLATIONS = {
         
         # DM Trade
         'trades_received_title': '🎁 You Received Trades!',
-        'trades_received_desc': 'You received {amount} trade(s) from administrator {admin}.',
+        'trades_received_desc': 'You received {amount} trade(s) from administrator {admin}. Use your trades in {channel}!',
         'current_trades': 'Current Trades',
         'dm_blocked': '⚠️ Could not send private message to {user} - DMs blocked.',
         'dm_error': '⚠️ Error sending private message to {user}.',
@@ -387,7 +387,7 @@ TRANSLATIONS = {
         
         # DM Trade
         'trades_received_title': '🎁 ¡Recibiste Trades!',
-        'trades_received_desc': 'Recibiste {amount} trade(s) del administrador {admin}.',
+        'trades_received_desc': 'Has recibido {amount} trade(s) del administrador {admin}. ¡Usa tus trades en {channel}!',
         'current_trades': 'Trades Actuales',
         'dm_blocked': '⚠️ No se pudo enviar mensaje privado a {user} - DMs bloqueados.',
         'dm_error': '⚠️ Error al enviar mensaje privado a {user}.',
