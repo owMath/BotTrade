@@ -380,6 +380,51 @@ async def status_command(ctx, code=None):
     
     await ctx.send(embed=embed)
 
+
+@bot.command(name='abort')
+async def abort_command(ctx, code=None):
+    """Comando para cancelar um código de trade ativo"""
+    # Obter idioma do usuário
+    lang = get_user_language(ctx.author.id)
+    
+    if not code:
+        await ctx.send(t('abort_no_code', lang))
+        return
+    
+    # Verificar se o código existe
+    if code not in active_trades:
+        await ctx.send(t('code_not_found', lang, {'code': code}))
+        return
+    
+    code_info = active_trades[code]
+    
+    # Verificar se o usuário é o dono do código ou um administrador
+    if code_info['user_id'] != ctx.author.id and not ctx.author.guild_permissions.administrator:
+        await ctx.send(t('not_your_code', lang))
+        return
+    
+    # Remover o código do dicionário de trades ativos
+    del active_trades[code]
+    
+    # Se o usuário tem este código como ativo, remove do dicionário de usuários com trades ativos
+    user_id = code_info.get('user_id')
+    if user_id in users_with_active_trade and users_with_active_trade[user_id] == code:
+        del users_with_active_trade[user_id]
+        
+        # Atualizar no MongoDB
+        if db.is_connected():
+            db.remove_user_active_trade(user_id)
+            db.delete_active_trade(code)
+    
+    # Criar embed com a confirmação
+    embed = discord.Embed(
+        title=t('abort_success_title', lang),
+        description=t('abort_success_desc', lang, {'code': code}),
+        color=0x00ff00
+    )
+    
+    await ctx.send(embed=embed)
+    
 # ===============================================
 # Novos Comandos para Gerenciamento de Trades
 # ===============================================
