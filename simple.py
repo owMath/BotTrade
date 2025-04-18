@@ -10,6 +10,12 @@ from database import Database  # Importar a classe de banco de dados
 from translations import t, get_user_language as get_lang # Importar funções de tradução
 from keep_alive import keep_alive
 
+def log_error(message, exception=None):
+    print(f"[ERRO] {message}")
+    if exception:
+        print(f"↪️  Detalhes: {exception}")
+
+
 # Carregar variáveis de ambiente
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -104,24 +110,44 @@ async def sync_data_to_mongodb():
         if db.is_connected():
             # Sincronizar trades de usuários
             for user_id, trades_count in user_trades.items():
-                db.set_user_trades(user_id, trades_count)
-                
+                try:
+                    db.reconnect_if_needed()
+                    db.set_user_trades(user_id, trades_count)
+                except Exception as e:
+                    log_error(f"Erro ao sincronizar trades de {user_id}", e)
+            
             # Sincronizar cooldowns de claim diário
             for user_id, timestamp in daily_claim_cooldown.items():
-                db.set_last_claim_time(user_id, timestamp)
-                
+                try:
+                    db.reconnect_if_needed()
+                    db.set_last_claim_time(user_id, timestamp)
+                except Exception as e:
+                    log_error(f"Erro ao sincronizar cooldown de {user_id}", e)
+            
             # Sincronizar trades ativos
             for code, info in active_trades.items():
-                db.set_active_trade(code, info)
-                
+                try:
+                    db.reconnect_if_needed()
+                    db.set_active_trade(code, info)
+                except Exception as e:
+                    log_error(f"Erro ao sincronizar trade ativo {code}", e)
+            
             # Sincronizar usuários com trades ativos
             for user_id, code in users_with_active_trade.items():
-                db.set_user_active_trade(user_id, code)
-                
+                try:
+                    db.reconnect_if_needed()
+                    db.set_user_active_trade(user_id, code)
+                except Exception as e:
+                    log_error(f"Erro ao sincronizar usuário com trade ativo {user_id}", e)
+            
             # Sincronizar preferências de idioma
             for user_id, lang in user_languages.items():
-                db.set_user_language(user_id, lang)
-                
+                try:
+                    db.reconnect_if_needed()
+                    db.set_user_language(user_id, lang)
+                except Exception as e:
+                    log_error(f"Erro ao sincronizar idioma do usuário {user_id}", e)
+            
             print("🔄 Dados sincronizados com MongoDB")
                 
         await asyncio.sleep(300)  # Sincronizar a cada 5 minutos
@@ -731,7 +757,7 @@ async def givetrade_command(ctx, member: discord.Member, amount: int = 1):
         await ctx.send(t('dm_blocked', lang, {'user': member.mention}))
     except Exception as e:
         # Lidar com outros possíveis erros de envio de DM
-        print(f"Erro ao enviar DM: {e}")
+        print(f"❌ Erro ao enviar DM para {member.id}: {e}")
         await ctx.send(t('dm_error', lang, {'user': member.mention}))
 
 @bot.command(name='listtrades')

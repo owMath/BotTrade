@@ -400,12 +400,17 @@ class Database:
         except Exception as e:
             print(f"❌ Erro ao obter idiomas dos usuários: {e}")
             return {}
-    
-    # Método de fallback para get_all_user_languages
-    def get_all_user_languages(self):
-        """
-        Método de compatibilidade para chamadas antigas
-        """
-        return self.get_user_languages()
-                
-    
+        
+    def reconnect_if_needed(self):
+            """
+            Tenta reconectar ao MongoDB se a conexão for perdida.
+            """
+            if not self.client:
+                self.__init__()
+                return
+
+            try:
+                self.client.admin.command('ping')
+            except:
+                print("🔄 Reconectando ao MongoDB após falha de conexão...")
+                self.__init__()
