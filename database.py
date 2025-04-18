@@ -323,31 +323,39 @@ class Database:
     # Operações para Preferências de Idioma
     # ===============================================
     
-    def set_user_language(self, user_id, language):
-        """
-        Define o idioma preferido de um usuário
-        
-        Args:
-            user_id (int): ID do usuário
-            language (str): Código do idioma (pt, en, es)
-        """
-        if not self.is_connected():
-            return False
-            
-        try:
-            self.user_languages_collection.update_one(
-                {"user_id": user_id},
-                {"$set": {
-                    "user_id": user_id, 
-                    "language": language, 
-                    "updated_at": datetime.datetime.now()
-                }},
-                upsert=True
-            )
-            return True
-        except Exception as e:
-            print(f"❌ Erro ao definir idioma do usuário: {e}")
-            return False
+def set_user_language(self, user_id, language):
+    """
+    Define o idioma preferido de um usuário no MongoDB.
+
+    Args:
+        user_id (int): ID do usuário
+        language (str): Código do idioma (pt, en, es)
+
+    Returns:
+        bool: True se salvou com sucesso, False se houve erro ou não conectado
+    """
+    # Verifica se há conexão com o banco
+    if not self.is_connected():
+        print("⚠️ MongoDB não está conectado. Idioma não foi salvo.")
+        return False
+
+    try:
+        # Realiza a atualização (ou cria o documento se não existir)
+        self.user_languages_collection.update_one(
+            {"user_id": user_id},  # filtro
+            {"$set": {
+                "user_id": user_id,
+                "language": language,
+                "updated_at": datetime.datetime.now()
+            }},
+            upsert=True
+        )
+        return True
+
+    except Exception as e:
+        print(f"❌ Erro ao definir idioma do usuário {user_id}: {e}")
+        return False
+
     
     def get_user_language(self, user_id):
         """
