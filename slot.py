@@ -336,4 +336,7 @@ class SlotMachine(commands.Cog):
                 "❌ Ocorreu um erro ao executar o comando."
             )
             
+def setup(bot):
+    bot.add_cog(SlotMachine(bot))
+            
         
