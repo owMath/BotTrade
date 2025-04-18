@@ -32,6 +32,7 @@ class Database:
             self.active_users_collection = self.db['active_users']
             self.user_languages_collection = self.db['user_languages']
             self.guild_languages_collection = self.db['guild_languages']
+            self.cooldowns_collection = self.db['cooldowns']  # Nova coleção para cooldowns
             
             # Criar índices para otimizar consultas
             self.user_trades_collection.create_index('user_id', unique=True)
@@ -40,6 +41,7 @@ class Database:
             self.active_users_collection.create_index('user_id', unique=True)
             self.user_languages_collection.create_index('user_id', unique=True)
             self.guild_languages_collection.create_index('guild_id', unique=True)
+            self.cooldowns_collection.create_index([('user_id', 1), ('command', 1)], unique=True)  # Índice composto
             
             print("✅ Conexão com MongoDB estabelecida com sucesso")
             
@@ -492,4 +494,171 @@ class Database:
             return guild_languages
         except Exception as e:
             print(f"❌ Erro ao obter idiomas dos servidores: {e}")
+            return {}
+    
+    # ===============================================
+    # Operações para Cooldowns de Comandos
+    # ===============================================
+    
+    def get_slot_cooldown(self, user_id):
+        """Obtém o último timestamp que o usuário usou o comando slot"""
+        if not self.is_connected():
+            return None
+        
+        try:
+            # Buscar na coleção de cooldowns
+            slot_cooldown = self.cooldowns_collection.find_one(
+                {"user_id": user_id, "command": "slot"}
+            )
+            
+            if slot_cooldown:
+                return slot_cooldown.get("timestamp")
+                
+        except Exception as e:
+            print(f"❌ Erro ao buscar cooldown do slot: {e}")
+        
+        return None
+    
+    def set_slot_cooldown(self, user_id, timestamp):
+        """Define o timestamp do último uso do comando slot"""
+        if not self.is_connected():
+            return False
+        
+        try:
+            # Atualizar na coleção de cooldowns
+            self.cooldowns_collection.update_one(
+                {"user_id": user_id, "command": "slot"},
+                {"$set": {
+                    "user_id": user_id,
+                    "command": "slot",
+                    "timestamp": timestamp
+                }},
+                upsert=True
+            )
+            return True
+            
+        except Exception as e:
+            print(f"❌ Erro ao definir cooldown do slot: {e}")
+            return False
+    
+    def get_command_cooldown(self, user_id, command):
+        """
+        Obtém o último timestamp que o usuário usou um comando específico
+        
+        Args:
+            user_id (int): ID do usuário
+            command (str): Nome do comando
+            
+        Returns:
+            datetime: Timestamp do último uso ou None se não houver registro
+        """
+        if not self.is_connected():
+            return None
+        
+        try:
+            cooldown = self.cooldowns_collection.find_one({
+                "user_id": user_id,
+                "command": command
+            })
+            
+            if cooldown:
+                return cooldown.get("timestamp")
+                
+        except Exception as e:
+            print(f"❌ Erro ao buscar cooldown do comando {command}: {e}")
+        
+        return None
+    
+    def set_command_cooldown(self, user_id, command, timestamp=None):
+        """
+        Define o timestamp do último uso de um comando
+        
+        Args:
+            user_id (int): ID do usuário
+            command (str): Nome do comando
+            timestamp (datetime, optional): Timestamp do uso. Se None, usa o tempo atual.
+            
+        Returns:
+            bool: True se bem-sucedido, False caso contrário
+        """
+        if not self.is_connected():
+            return False
+        
+        if timestamp is None:
+            timestamp = datetime.datetime.now()
+        
+        try:
+            self.cooldowns_collection.update_one(
+                {"user_id": user_id, "command": command},
+                {"$set": {
+                    "user_id": user_id,
+                    "command": command,
+                    "timestamp": timestamp
+                }},
+                upsert=True
+            )
+            return True
+            
+        except Exception as e:
+            print(f"❌ Erro ao definir cooldown do comando {command}: {e}")
+            return False
+    
+    def clear_command_cooldown(self, user_id, command):
+        """
+        Remove o cooldown de um comando para um usuário
+        
+        Args:
+            user_id (int): ID do usuário
+            command (str): Nome do comando
+            
+        Returns:
+            bool: True se bem-sucedido, False caso contrário
+        """
+        if not self.is_connected():
+            return False
+        
+        try:
+            self.cooldowns_collection.delete_one({
+                "user_id": user_id,
+                "command": command
+            })
+            return True
+            
+        except Exception as e:
+            print(f"❌ Erro ao limpar cooldown do comando {command}: {e}")
+            return False
+    
+    def get_all_command_cooldowns(self, command=None):
+        """
+        Obtém todos os cooldowns de comandos, opcionalmente filtrados por comando
+        
+        Args:
+            command (str, optional): Nome do comando para filtrar
+            
+        Returns:
+            dict: Dicionário com IDs de usuários como chaves e timestamps como valores
+        """
+        if not self.is_connected():
+            return {}
+        
+        try:
+            query = {}
+            if command:
+                query["command"] = command
+                
+            cooldowns = {}
+            for doc in self.cooldowns_collection.find(query):
+                user_id = doc["user_id"]
+                cmd = doc["command"]
+                timestamp = doc["timestamp"]
+                
+                if user_id not in cooldowns:
+                    cooldowns[user_id] = {}
+                
+                cooldowns[user_id][cmd] = timestamp
+                
+            return cooldowns
+            
+        except Exception as e:
+            print(f"❌ Erro ao obter cooldowns de comandos: {e}")
             return {}
