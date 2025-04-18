@@ -10,11 +10,27 @@ from database import Database  # Importar a classe de banco de dados
 from translations import t, get_user_language as get_lang # Importar funções de tradução
 from keep_alive import keep_alive
 
-def log_error(message, exception=None):
+async def log_error(message, exception=None):
     print(f"[ERRO] {message}")
     if exception:
         print(f"↪️  Detalhes: {exception}")
 
+    log_channel_id = os.getenv('LOG_CHANNEL_ID')
+    if log_channel_id:
+        channel = bot.get_channel(int(log_channel_id))
+        if channel:
+            embed = discord.Embed(
+                title="🚨 Log de Erro",
+                description=f"**{message}**",
+                color=0xff5555
+            )
+            if exception:
+                embed.add_field(name="Detalhes", value=f"```{str(exception)}```", inline=False)
+            embed.timestamp = datetime.datetime.now()
+            try:
+                await channel.send(embed=embed)
+            except Exception as e:
+                print(f"❌ Falha ao enviar log para canal Discord: {e}")
 
 # Carregar variáveis de ambiente
 load_dotenv()
@@ -114,7 +130,7 @@ async def sync_data_to_mongodb():
                     db.reconnect_if_needed()
                     db.set_user_trades(user_id, trades_count)
                 except Exception as e:
-                    log_error(f"Erro ao sincronizar trades de {user_id}", e)
+                    await log_error(f"Erro ao sincronizar trades de {user_id}", e)
             
             # Sincronizar cooldowns de claim diário
             for user_id, timestamp in daily_claim_cooldown.items():
@@ -122,15 +138,15 @@ async def sync_data_to_mongodb():
                     db.reconnect_if_needed()
                     db.set_last_claim_time(user_id, timestamp)
                 except Exception as e:
-                    log_error(f"Erro ao sincronizar cooldown de {user_id}", e)
-            
+                    await log_error(f"Erro ao sincronizar cooldown de {user_id}", e)
+
             # Sincronizar trades ativos
             for code, info in active_trades.items():
                 try:
                     db.reconnect_if_needed()
                     db.set_active_trade(code, info)
                 except Exception as e:
-                    log_error(f"Erro ao sincronizar trade ativo {code}", e)
+                    await log_error(f"Erro ao sincronizar trade ativo {code}", e)
             
             # Sincronizar usuários com trades ativos
             for user_id, code in users_with_active_trade.items():
@@ -138,7 +154,7 @@ async def sync_data_to_mongodb():
                     db.reconnect_if_needed()
                     db.set_user_active_trade(user_id, code)
                 except Exception as e:
-                    log_error(f"Erro ao sincronizar usuário com trade ativo {user_id}", e)
+                    await log_error(f"Erro ao sincronizar usuário com trade ativo {user_id}", e)
             
             # Sincronizar preferências de idioma
             for user_id, lang in user_languages.items():
@@ -146,7 +162,7 @@ async def sync_data_to_mongodb():
                     db.reconnect_if_needed()
                     db.set_user_language(user_id, lang)
                 except Exception as e:
-                    log_error(f"Erro ao sincronizar idioma do usuário {user_id}", e)
+                    await log_error(f"Erro ao sincronizar idioma do usuário {user_id}", e)
             
             print("🔄 Dados sincronizados com MongoDB")
                 
