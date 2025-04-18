@@ -1059,4 +1059,11 @@ if __name__ == "__main__":
     from translations import t, get_user_language as get_lang, set_lang
     print(f"🌐 Idioma padrão do bot: {DEFAULT_LANGUAGE}")
     
+    # Carregar extensões
+    try:
+        bot.load_extension('slot')
+        print("✅ Módulo 'slot' carregado com sucesso")
+    except Exception as e:
+        print(f"❌ Erro ao carregar módulo 'slot': {e}")
+    
     bot.run(TOKEN)
