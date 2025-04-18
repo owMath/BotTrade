@@ -493,3 +493,111 @@ class Database:
         except Exception as e:
             print(f"❌ Erro ao obter idiomas dos servidores: {e}")
             return {}
+        
+    def get_user_trade_history(self, user_id):
+        """Retorna o histórico de trades de um usuário"""
+        if not self.is_connected():
+            return []
+        
+        try:
+            collection = self.db["trade_history"]
+            history = list(collection.find({"user_id": user_id}).sort("timestamp", -1))
+            return history
+        except Exception as e:
+            print(f"Erro ao obter histórico de trades: {e}")
+            return []
+
+    def get_user_total_completed_trades(self, user_id):
+        """Retorna o total de trades completados por um usuário"""
+        if not self.is_connected():
+            return 0
+        
+        try:
+            collection = self.db["trade_history"]
+            count = collection.count_documents({"user_id": user_id, "success": True})
+            return count
+        except Exception as e:
+            print(f"Erro ao contar trades completados: {e}")
+            return 0
+
+    def remove_claim_cooldown(self, user_id):
+        """Remove o cooldown de claim diário de um usuário"""
+        if not self.is_connected():
+            return False
+        
+        try:
+            result = self.daily_claim_collection.delete_one({"user_id": user_id})
+            return result.deleted_count > 0
+        except Exception as e:
+            print(f"Erro ao remover cooldown: {e}")
+            return False
+
+    def get_trade_stats(self, period="all"):
+        """Retorna estatísticas de trades com base no período especificado"""
+        if not self.is_connected():
+            return {}
+        
+        try:
+            # Determinar data de início com base no período
+            start_date = None
+            now = datetime.datetime.now()
+            
+            if period == "today":
+                start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            elif period == "week":
+                # Início da semana (segunda-feira)
+                days_since_monday = now.weekday()
+                start_date = (now - datetime.timedelta(days=days_since_monday)).replace(hour=0, minute=0, second=0, microsecond=0)
+            elif period == "month":
+                # Início do mês
+                start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            
+            # Definir filtro com base no período
+            filter_query = {}
+            if start_date:
+                filter_query = {"timestamp": {"$gte": start_date}}
+            
+            # Coleção de histórico de trades
+            collection = self.db["trade_history"]
+            
+            # Estatísticas básicas
+            total_trades = collection.count_documents(filter_query)
+            successful_trades = collection.count_documents({**filter_query, "success": True})
+            failed_trades = collection.count_documents({**filter_query, "success": False})
+            
+            # Tempo médio de processamento
+            pipeline = [
+                {"$match": filter_query},
+                {"$group": {
+                    "_id": None,
+                    "avg_time": {"$avg": "$processing_time"}
+                }}
+            ]
+            avg_result = list(collection.aggregate(pipeline))
+            avg_time = avg_result[0]["avg_time"] if avg_result else 0
+            
+            # Usuário mais ativo
+            pipeline = [
+                {"$match": filter_query},
+                {"$group": {
+                    "_id": "$user_id",
+                    "count": {"$sum": 1}
+                }},
+                {"$sort": {"count": -1}},
+                {"$limit": 1}
+            ]
+            most_active = list(collection.aggregate(pipeline))
+            most_active_user_id = most_active[0]["_id"] if most_active else None
+            most_active_user_count = most_active[0]["count"] if most_active else 0
+            
+            return {
+                "total_trades": total_trades,
+                "successful_trades": successful_trades,
+                "failed_trades": failed_trades,
+                "avg_processing_time": avg_time,
+                "most_active_user_id": most_active_user_id,
+                "most_active_user_count": most_active_user_count
+            }
+        except Exception as e:
+            print(f"Erro ao obter estatísticas: {e}")
+            return {}

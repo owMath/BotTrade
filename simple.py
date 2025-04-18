@@ -425,6 +425,245 @@ async def abort_command(ctx, code=None):
     
     await ctx.send(embed=embed)
     
+@bot.command(name='activecodes')
+@commands.has_permissions(administrator=True)  # Restringe apenas para administradores
+async def activecodes_command(ctx):
+    """Comando para administradores verem todos os códigos ativos no sistema"""
+    # Obter idioma do usuário
+    lang = get_user_language(ctx.author.id)
+    
+    if not active_trades:
+        await ctx.send(t('no_active_codes', lang))
+        return
+    
+    # Criar embed para mostrar os códigos
+    embed = discord.Embed(
+        title=t('active_codes_title', lang),
+        description=t('active_codes_desc', lang, {'count': len(active_trades)}),
+        color=0x0088ff
+    )
+    
+    # Ordenar codes por timestamp (mais recentes primeiro)
+    sorted_codes = sorted(
+        active_trades.items(),
+        key=lambda x: x[1]['timestamp'],
+        reverse=True
+    )
+    
+    # Adicionar campos para cada código
+    for code, info in sorted_codes:
+        # Calcular tempo restante
+        time_diff = datetime.datetime.now() - info['timestamp']
+        expire_minutes = info.get('expire_minutes', 30)
+        minutes_left = max(0, expire_minutes - int(time_diff.total_seconds() / 60))
+        
+        # Obter nome do usuário
+        user_id = info['user_id']
+        user = ctx.guild.get_member(user_id)
+        user_name = user.display_name if user else f"ID: {user_id}"
+        
+        # Formatar status
+        status_text = info['status']
+        if status_text == 'pending':
+            status_text = t('status_pending', lang)
+        elif status_text == 'processing':
+            status_text = t('status_processing', lang)
+        elif status_text == 'completed':
+            status_text = t('status_completed', lang)
+        elif status_text == 'failed':
+            status_text = t('status_failed', lang)
+        
+        # Adicionar campo para o código
+        embed.add_field(
+            name=f"📋 {code}",
+            value=f"👤 {user_name}\n⏱️ {t('time_remaining', lang)}: {minutes_left} {t('minutes', lang)}\n📊 {t('status', lang)}: {status_text}",
+            inline=True
+        )
+    
+    await ctx.send(embed=embed)
+    
+@bot.command(name='tradeshistory', aliases=['history'])
+async def tradeshistory_command(ctx, member: discord.Member = None):
+    """Comando para ver o histórico de trades de um usuário"""
+    # Obter idioma do usuário
+    lang = get_user_language(ctx.author.id)
+    
+    # Se não for especificado um membro, usa o autor do comando
+    if not member:
+        member = ctx.author
+    
+    # Verificar permissões - apenas o próprio usuário ou admins podem ver histórico
+    if member.id != ctx.author.id and not ctx.author.guild_permissions.administrator:
+        await ctx.send(t('history_no_permission', lang))
+        return
+    
+    # Obter histórico do MongoDB (supondo que temos uma função para isso)
+    user_history = []
+    trades_total = 0
+    
+    if db.is_connected():
+        user_history = db.get_user_trade_history(member.id)
+        trades_total = db.get_user_total_completed_trades(member.id)
+    
+    # Verificar se existem dados de histórico
+    if not user_history:
+        # Verificar se o usuário já realizou trades
+        if member.id in user_trades and user_trades[member.id] > 0:
+            await ctx.send(t('history_no_completed_trades', lang, {'user': member.display_name}))
+        else:
+            await ctx.send(t('history_no_trades', lang, {'user': member.display_name}))
+        return
+    
+    # Criar embed para mostrar o histórico
+    embed = discord.Embed(
+        title=t('history_title', lang, {'user': member.display_name}),
+        description=t('history_desc', lang, {'total': trades_total}),
+        color=0x00aa00
+    )
+    
+    # Adicionar os últimos 5 trades (ou menos, se não houver 5)
+    recent_trades = user_history[:5]  # Assume que o histórico já vem ordenado pelo mais recente
+    
+    for i, trade in enumerate(recent_trades):
+        code = trade.get('code', 'N/A')
+        timestamp = trade.get('timestamp', datetime.datetime.now())
+        amount = trade.get('amount', 0)
+        success = trade.get('success', True)
+        
+        status_text = t('trade_success', lang) if success else t('trade_failed', lang)
+        time_str = timestamp.strftime("%d/%m/%Y %H:%M")
+        
+        embed.add_field(
+            name=f"#{i+1} - {code}",
+            value=f"📅 {time_str}\n🔢 {t('trades_amount', lang)}: {amount}\n📊 {t('status', lang)}: {status_text}",
+            inline=True
+        )
+    
+    # Adicionar footer com informação adicional
+    embed.set_footer(text=t('history_footer', lang))
+    
+    await ctx.send(embed=embed)
+    
+@bot.command(name='resetclaim')
+@commands.has_permissions(administrator=True)  # Restringe apenas para administradores
+async def resetclaim_command(ctx, member: discord.Member):
+    """Comando para resetar o cooldown de claim diário de um usuário"""
+    # Obter idioma do usuário
+    lang = get_user_language(ctx.author.id)
+    
+    # Verificar se o membro foi especificado
+    if not member:
+        await ctx.send(t('resetclaim_no_member', lang))
+        return
+    
+    # Remover o usuário do dicionário de cooldown
+    if member.id in daily_claim_cooldown:
+        del daily_claim_cooldown[member.id]
+        
+        # Atualizar no MongoDB
+        if db.is_connected():
+            db.remove_claim_cooldown(member.id)
+        
+        await ctx.send(t('resetclaim_success', lang, {'user': member.display_name}))
+    else:
+        await ctx.send(t('resetclaim_not_on_cooldown', lang, {'user': member.display_name}))
+        
+@bot.command(name='stats')
+@commands.has_permissions(administrator=True)  # Restringe apenas para administradores
+async def stats_command(ctx, period: str = "all"):
+    """Comando para ver estatísticas de trades no sistema"""
+    # Obter idioma do usuário
+    lang = get_user_language(ctx.author.id)
+    
+    # Verificar o período solicitado
+    valid_periods = ["all", "today", "week", "month"]
+    if period.lower() not in valid_periods:
+        await ctx.send(t('stats_invalid_period', lang, {'periods': ", ".join(valid_periods)}))
+        return
+    
+    # Obter estatísticas do MongoDB (assumindo funções para isso)
+    stats = {}
+    
+    if db.is_connected():
+        stats = db.get_trade_stats(period.lower())
+    else:
+        await ctx.send(t('stats_db_required', lang))
+        return
+    
+    # Extrair estatísticas
+    total_trades = stats.get('total_trades', 0)
+    successful_trades = stats.get('successful_trades', 0)
+    failed_trades = stats.get('failed_trades', 0)
+    avg_time = stats.get('avg_processing_time', 0)
+    most_active_user_id = stats.get('most_active_user_id', None)
+    most_active_user_count = stats.get('most_active_user_count', 0)
+    
+    # Calcular taxa de sucesso
+    success_rate = 0
+    if total_trades > 0:
+        success_rate = (successful_trades / total_trades) * 100
+    
+    # Obter nome do usuário mais ativo
+    most_active_user_name = "Ninguém"
+    if most_active_user_id:
+        user = ctx.guild.get_member(most_active_user_id)
+        if user:
+            most_active_user_name = user.display_name
+    
+    # Formatar título com base no período
+    period_title = ""
+    if period.lower() == "today":
+        period_title = t('stats_today', lang)
+    elif period.lower() == "week":
+        period_title = t('stats_week', lang)
+    elif period.lower() == "month":
+        period_title = t('stats_month', lang)
+    else:
+        period_title = t('stats_all_time', lang)
+    
+    # Criar embed para mostrar as estatísticas
+    embed = discord.Embed(
+        title=t('stats_title', lang, {'period': period_title}),
+        description=t('stats_desc', lang),
+        color=0x5555ff
+    )
+    
+    # Adicionar campos de estatísticas
+    embed.add_field(
+        name=t('stats_total', lang),
+        value=str(total_trades),
+        inline=True
+    )
+    
+    embed.add_field(
+        name=t('stats_success', lang),
+        value=f"{successful_trades} ({success_rate:.1f}%)",
+        inline=True
+    )
+    
+    embed.add_field(
+        name=t('stats_failed', lang),
+        value=str(failed_trades),
+        inline=True
+    )
+    
+    embed.add_field(
+        name=t('stats_avg_time', lang),
+        value=f"{avg_time:.1f} {t('seconds', lang)}",
+        inline=True
+    )
+    
+    embed.add_field(
+        name=t('stats_most_active', lang),
+        value=f"{most_active_user_name} ({most_active_user_count} trades)",
+        inline=True
+    )
+    
+    # Adicionar timestamp
+    embed.timestamp = datetime.datetime.now()
+    
+    await ctx.send(embed=embed)
+    
 # ===============================================
 # Novos Comandos para Gerenciamento de Trades
 # ===============================================
@@ -885,6 +1124,18 @@ async def help_command(ctx):
     )
     
     embed.add_field(
+        name="!abort [código]", 
+        value=t('help_abort', lang), 
+        inline=False
+    )
+    
+    embed.add_field(
+        name="!tradeshistory", 
+        value=t('help_tradeshistory', lang), 
+        inline=False
+    )
+    
+    embed.add_field(
         name="!ajuda", 
         value=t('help_help', lang), 
         inline=False
@@ -932,6 +1183,24 @@ async def adminhelp_command(ctx):
     embed.add_field(
         name="!givetrade [@usuário] [quantidade]", 
         value=t('help_givetrade', lang), 
+        inline=False
+    )
+    
+    embed.add_field(
+        name="!activecodes", 
+        value=t('help_activecodes', lang), 
+        inline=False
+    )
+    
+    embed.add_field(
+        name="!resetclaim [@usuário]", 
+        value=t('help_resetclaim', lang), 
+        inline=False
+    )
+    
+    embed.add_field(
+        name="!stats [período]", 
+        value=t('help_stats', lang), 
         inline=False
     )
     

@@ -18,7 +18,67 @@ TRANSLATIONS = {
         'trade_by': 'Criado por: Math',
         'trade_completed': 'Seu trade foi finalizado com sucesso.',
         'trade_more_info': 'Para ganhar mais trades, participe das atividades e eventos dentro do servidor.',
+        'abort_no_code': 'Por favor, forneça o código do trade que deseja cancelar.',
+        'abort_success_title': 'Trade Cancelado',
+        'abort_success_desc': 'O trade com código **{code}** foi cancelado com sucesso.',
+        'no_active_codes': 'Não há códigos ativos no momento.',
+        'active_codes_title': 'Códigos Ativos',
+        'active_codes_desc': 'Existem **{count}** códigos ativos no sistema.',
+        'time_remaining': 'Tempo restante',
+        'minutes': 'minutos',
+        'status': 'Status',
+        'help_activecodes': 'Mostra todos os códigos de trades ativos no sistema.',
         
+         # Comando abort
+        'abort_no_code': 'Por favor, forneça o código do trade que deseja cancelar.',
+        'abort_success_title': 'Trade Cancelado',
+        'abort_success_desc': 'O trade com código **{code}** foi cancelado com sucesso.',
+        'help_abort': 'Cancela um trade ativo usando seu código.',
+        
+        # Comando activecodes
+        'no_active_codes': 'Não há códigos ativos no momento.',
+        'active_codes_title': 'Códigos Ativos',
+        'active_codes_desc': 'Existem **{count}** códigos ativos no sistema.',
+        'time_remaining': 'Tempo restante',
+        'minutes': 'minutos',
+        'status': 'Status',
+        'help_activecodes': 'Mostra todos os códigos de trades ativos no sistema.',
+        
+        # Comando tradeshistory
+        'history_no_permission': 'Você não tem permissão para ver o histórico de outro usuário.',
+        'history_no_completed_trades': '{user} ainda não completou nenhum trade.',
+        'history_no_trades': '{user} não realizou nenhum trade ainda.',
+        'history_title': 'Histórico de Trades de {user}',
+        'history_desc': 'Total de trades completados: {total}',
+        'history_footer': 'Mostrando os 5 trades mais recentes.',
+        'trades_amount': 'Quantidade',
+        'trade_success': 'Sucesso',
+        'trade_failed': 'Falhou',
+        'help_tradeshistory': 'Mostra seu histórico de trades ou de um usuário específico (admin).',
+        
+        # Comando resetclaim
+        'resetclaim_no_member': 'Você precisa especificar um usuário.',
+        'resetclaim_success': 'O cooldown de claim diário de {user} foi resetado com sucesso.',
+        'resetclaim_not_on_cooldown': '{user} não está em cooldown de claim diário.',
+        'help_resetclaim': 'Reseta o cooldown de claim diário de um usuário.',
+        
+        # Comando stats
+        'stats_invalid_period': 'Período inválido. Use um dos seguintes: {periods}',
+        'stats_db_required': 'Este comando requer conexão com o banco de dados.',
+        'stats_title': 'Estatísticas de Trades - {period}',
+        'stats_desc': 'Resumo da atividade de trades no sistema.',
+        'stats_total': 'Total de Trades',
+        'stats_success': 'Trades com Sucesso',
+        'stats_failed': 'Trades Falhos',
+        'stats_avg_time': 'Tempo Médio',
+        'stats_most_active': 'Usuário Mais Ativo',
+        'stats_today': 'Hoje',
+        'stats_week': 'Esta Semana',
+        'stats_month': 'Este Mês',
+        'stats_all_time': 'Todo o Período',
+        'seconds': 'segundos',
+        'help_stats': 'Mostra estatísticas de trades. Períodos: all, today, week, month.',
+
         # DM Trade
         'trades_received_title': '🎁 Você recebeu Trades!',
         'trades_received_desc': 'Você recebeu {amount} trade(s) do administrador {admin}.',
@@ -77,6 +137,7 @@ TRANSLATIONS = {
         'help_claimtrade': 'Recebe seus 5 trades diários (disponível a cada 24 horas).',
         'help_usetrade': 'Usa um dos seus trades disponíveis e gera um código para processar a quantidade especificada de trades.\nExemplo: `!usetrade 2` - Usa um trade para processar 2 trades.\n⚠️ Você só pode ter um trade ativo por vez. Aguarde o processamento para usar outro.',
         'help_help': 'Exibe esta mensagem de ajuda',
+        'help_abort': 'Cancela um trade ativo usando seu código.',
         'help_lang': 'Define seu idioma preferido. Opções disponíveis: pt (Português), en (Inglês), es (Espanhol).',
         
         # MongoDB e outros
@@ -110,6 +171,66 @@ TRANSLATIONS = {
         'trade_by': 'Created by: Math',
         'trade_completed': 'Your trade has been successfully completed.',
         'trade_more_info': 'To earn more trades, participate in activities and events within the server.',
+        'abort_no_code': 'Please provide the trade code you want to cancel.',
+        'abort_success_title': 'Trade Canceled',
+        'abort_success_desc': 'The trade with code **{code}** has been successfully canceled.',
+        'no_active_codes': 'There are no active codes at the moment.',
+        'active_codes_title': 'Active Codes',
+        'active_codes_desc': 'There are **{count}** active codes in the system.',
+        'time_remaining': 'Time remaining',
+        'minutes': 'minutes',
+        'status': 'Status',
+        'help_activecodes': 'Shows all active trade codes in the system.',
+        
+        # Comando abort
+        'abort_no_code': 'Please provide the trade code you want to cancel.',
+        'abort_success_title': 'Trade Canceled',
+        'abort_success_desc': 'The trade with code **{code}** has been successfully canceled.',
+        'help_abort': 'Cancels an active trade using its code.',
+        
+        # Comando activecodes
+        'no_active_codes': 'There are no active codes at the moment.',
+        'active_codes_title': 'Active Codes',
+        'active_codes_desc': 'There are **{count}** active codes in the system.',
+        'time_remaining': 'Time remaining',
+        'minutes': 'minutes',
+        'status': 'Status',
+        'help_activecodes': 'Shows all active trade codes in the system.',
+        
+        # Comando tradeshistory
+        'history_no_permission': 'You do not have permission to view another user\'s history.',
+        'history_no_completed_trades': '{user} has not completed any trades yet.',
+        'history_no_trades': '{user} has not made any trades yet.',
+        'history_title': '{user}\'s Trade History',
+        'history_desc': 'Total completed trades: {total}',
+        'history_footer': 'Showing the 5 most recent trades.',
+        'trades_amount': 'Amount',
+        'trade_success': 'Success',
+        'trade_failed': 'Failed',
+        'help_tradeshistory': 'Shows your trade history or a specific user\'s history (admin).',
+        
+        # Comando resetclaim
+        'resetclaim_no_member': 'You need to specify a user.',
+        'resetclaim_success': '{user}\'s daily claim cooldown has been successfully reset.',
+        'resetclaim_not_on_cooldown': '{user} is not on daily claim cooldown.',
+        'help_resetclaim': 'Resets a user\'s daily claim cooldown.',
+        
+        # Comando stats
+        'stats_invalid_period': 'Invalid period. Use one of the following: {periods}',
+        'stats_db_required': 'This command requires a database connection.',
+        'stats_title': 'Trade Statistics - {period}',
+        'stats_desc': 'Summary of trading activity in the system.',
+        'stats_total': 'Total Trades',
+        'stats_success': 'Successful Trades',
+        'stats_failed': 'Failed Trades',
+        'stats_avg_time': 'Average Time',
+        'stats_most_active': 'Most Active User',
+        'stats_today': 'Today',
+        'stats_week': 'This Week',
+        'stats_month': 'This Month',
+        'stats_all_time': 'All Time',
+        'seconds': 'seconds',
+        'help_stats': 'Shows trade statistics. Periods: all, today, week, month.',
         
         # DM Trade
         'trades_received_title': '🎁 You Received Trades!',
@@ -169,6 +290,7 @@ TRANSLATIONS = {
         'help_claimtrade': 'Receive your 5 daily trades (available every 24 hours).',
         'help_usetrade': 'Uses one of your available trades and generates a code to process the specified number of trades.\nExample: `!usetrade 2` - Uses one trade to process 2 trades.\n⚠️ You can only have one active trade at a time. Wait for processing to use another.',
         'help_help': 'Displays this help message',
+        'help_abort': 'Cancels an active trade using its code.',
         'help_lang': 'Sets your preferred language. Available options: pt (Portuguese), en (English), es (Spanish).',
         
         # MongoDB e outros
@@ -202,6 +324,66 @@ TRANSLATIONS = {
         'trade_by': 'Creado por: Math',
         'trade_completed': 'Tu intercambio ha sido finalizado con éxito.',
         'trade_more_info': 'Para ganar más intercambios, participa en las actividades y eventos dentro del servidor.',
+        'abort_no_code': 'Por favor, proporcione el código del trade que desea cancelar.',
+        'abort_success_title': 'Trade Cancelado',
+        'abort_success_desc': 'El trade con código **{code}** ha sido cancelado con éxito.',
+        'no_active_codes': 'No hay códigos activos en este momento.',
+        'active_codes_title': 'Códigos Activos',
+        'active_codes_desc': 'Hay **{count}** códigos activos en el sistema.',
+        'time_remaining': 'Tiempo restante',
+        'minutes': 'minutos',
+        'status': 'Estado',
+        'help_activecodes': 'Muestra todos los códigos de trades activos en el sistema.',
+        
+        # Comando abort
+        'abort_no_code': 'Por favor, proporcione el código del trade que desea cancelar.',
+        'abort_success_title': 'Trade Cancelado',
+        'abort_success_desc': 'El trade con código **{code}** ha sido cancelado con éxito.',
+        'help_abort': 'Cancela un trade activo usando su código.',
+        
+        # Comando activecodes
+        'no_active_codes': 'No hay códigos activos en este momento.',
+        'active_codes_title': 'Códigos Activos',
+        'active_codes_desc': 'Hay **{count}** códigos activos en el sistema.',
+        'time_remaining': 'Tiempo restante',
+        'minutes': 'minutos',
+        'status': 'Estado',
+        'help_activecodes': 'Muestra todos los códigos de trades activos en el sistema.',
+        
+        # Comando tradeshistory
+        'history_no_permission': 'No tienes permiso para ver el historial de otro usuario.',
+        'history_no_completed_trades': '{user} aún no ha completado ningún trade.',
+        'history_no_trades': '{user} no ha realizado ningún trade todavía.',
+        'history_title': 'Historial de Trades de {user}',
+        'history_desc': 'Total de trades completados: {total}',
+        'history_footer': 'Mostrando los 5 trades más recientes.',
+        'trades_amount': 'Cantidad',
+        'trade_success': 'Éxito',
+        'trade_failed': 'Fallido',
+        'help_tradeshistory': 'Muestra tu historial de trades o el de un usuario específico (admin).',
+        
+        # Comando resetclaim
+        'resetclaim_no_member': 'Necesitas especificar un usuario.',
+        'resetclaim_success': 'El tiempo de espera de claim diario de {user} ha sido restablecido con éxito.',
+        'resetclaim_not_on_cooldown': '{user} no está en tiempo de espera de claim diario.',
+        'help_resetclaim': 'Restablece el tiempo de espera de claim diario de un usuario.',
+        
+        # Comando stats
+        'stats_invalid_period': 'Período inválido. Usa uno de los siguientes: {periods}',
+        'stats_db_required': 'Este comando requiere conexión a la base de datos.',
+        'stats_title': 'Estadísticas de Trades - {period}',
+        'stats_desc': 'Resumen de la actividad de trades en el sistema.',
+        'stats_total': 'Total de Trades',
+        'stats_success': 'Trades Exitosos',
+        'stats_failed': 'Trades Fallidos',
+        'stats_avg_time': 'Tiempo Promedio',
+        'stats_most_active': 'Usuario Más Activo',
+        'stats_today': 'Hoy',
+        'stats_week': 'Esta Semana',
+        'stats_month': 'Este Mes',
+        'stats_all_time': 'Todo el Tiempo',
+        'seconds': 'segundos',
+        'help_stats': 'Muestra estadísticas de trades. Períodos: all, today, week, month.',
         
         # DM Trade
         'trades_received_title': '🎁 ¡Recibiste Trades!',
@@ -261,6 +443,7 @@ TRANSLATIONS = {
         'help_claimtrade': 'Recibe tus 5 intercambios diarios (disponible cada 24 horas).',
         'help_usetrade': 'Usa uno de tus intercambios disponibles y genera un código para procesar la cantidad especificada de intercambios.\nEjemplo: `!usetrade 2` - Usa un intercambio para procesar 2 intercambios.\n⚠️ Solo puedes tener un intercambio activo a la vez. Espera a que se procese para usar otro.',
         'help_help': 'Muestra este mensaje de ayuda',
+        'help_abort': 'Cancela un trade activo usando su código.',
         'help_lang': 'Establece tu idioma preferido. Opciones disponibles: pt (Portugués), en (Inglés), es (Español).',
         
         # MongoDB e outros
