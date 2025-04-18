@@ -8,6 +8,7 @@ import asyncio
 from dotenv import load_dotenv
 from database import Database  # Importar a classe de banco de dados
 from translations import t, get_user_language as get_lang # Importar funções de tradução
+from keep_alive import keep_alive
 
 # Carregar variáveis de ambiente
 load_dotenv()
@@ -1377,5 +1378,5 @@ if __name__ == "__main__":
     # Definir o idioma padrão do bot
     from translations import t, get_user_language as get_lang, set_lang
     print(f"🌐 Idioma padrão do bot: {DEFAULT_LANGUAGE}")
-    
+    keep_alive()
     bot.run(TOKEN)
