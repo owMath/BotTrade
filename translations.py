@@ -87,26 +87,6 @@ TRANSLATIONS = {
         'db_solution': 'Configure a variável de ambiente `MONGO_URI` no arquivo `.env` para habilitar a persistência de dados.',
         'db_stats': '- Usuários com trades: {users}\n- Usuários com cooldown: {cooldowns}\n- Trades ativos: {active}\n- Usuários com trades em andamento: {in_progress}',
 
-        # Slot
-        "slot.title": "🎰 Caça-Níquel de Trades",
-        "slot.description": "Gire a máquina e ganhe trades!",
-        "slot.rewards": "Prêmios",
-        "slot.rewardsDescription": "🍀 = 3 trades (épico)\n⚽ = 2 trades (raro)\n❌ = Sem prêmio",
-        "slot.goodLuck": "Boa sorte!",
-        "slot.onCooldown": "⏰ Você precisa esperar para jogar novamente. Tempo restante: {time}",
-        "slot.spinning": "Girando...",
-        "slot.spinningDescription": "A máquina está girando! Boa sorte!",
-        "slot.result": "Resultado do Caça-Níquel",
-        "slot.congratulations": "🎉 Parabéns!",
-        "slot.winDescription": "Você ganhou {count} trades de raridade {rarity}!",
-        "slot.tryAgain": "😢 Que pena!",
-        "slot.loseDescription": "Você não ganhou nada desta vez. Tente novamente mais tarde!",
-        "slot.playAgain": "Volte em 15 minutos para jogar novamente!",
-        "slot.rewardReceived": "🎁 Você recebeu {count} trades de raridade {rarity}!",
-        "slot.epicRarity": "épico",
-        "slot.rareRarity": "raro",
-        "slot.commonRarity": "comum",
-
         # Comandos de idioma
         'current_language': 'Seu idioma atual é: **{language}**',
         'available_languages': 'Idiomas disponíveis: {languages}',
@@ -199,27 +179,6 @@ TRANSLATIONS = {
         'db_solution': 'Configure the `MONGO_URI` environment variable in the `.env` file to enable data persistence.',
         'db_stats': '- Users with trades: {users}\n- Users with cooldown: {cooldowns}\n- Active trades: {active}\n- Users with in-progress trades: {in_progress}',
 
-        # Slot
-        "en": {
-        "slot.title": "🎰 Trade Slot Machine",
-        "slot.description": "Spin the machine and win trades!",
-        "slot.rewards": "Rewards",
-        "slot.rewardsDescription": "🍀 = 3 trades (epic)\n⚽ = 2 trades (rare)\n❌ = No reward",
-        "slot.goodLuck": "Good luck!",
-        "slot.onCooldown": "⏰ You need to wait to play again. Time remaining: {time}",
-        "slot.spinning": "Spinning...",
-        "slot.spinningDescription": "The machine is spinning! Good luck!",
-        "slot.result": "Slot Machine Result",
-        "slot.congratulations": "🎉 Congratulations!",
-        "slot.winDescription": "You won {count} trades of {rarity} rarity!",
-        "slot.tryAgain": "😢 Too bad!",
-        "slot.loseDescription": "You didn't win anything this time. Try again later!",
-        "slot.playAgain": "Come back in 15 minutes to play again!",
-        "slot.rewardReceived": "🎁 You received {count} trades of {rarity} rarity!",
-        "slot.epicRarity": "epic",
-        "slot.rareRarity": "rare",
-        "slot.commonRarity": "common",
-        
         # Comandos de idioma
         'current_language': 'Your current language is: **{language}**',
         'available_languages': 'Available languages: {languages}',
@@ -312,33 +271,12 @@ TRANSLATIONS = {
         'db_solution': 'Configura la variable de entorno `MONGO_URI` en el archivo `.env` para habilitar la persistencia de datos.',
         'db_stats': '- Usuarios con intercambios: {users}\n- Usuarios con tiempo de espera: {cooldowns}\n- Intercambios activos: {active}\n- Usuarios con intercambios en progreso: {in_progress}',
 
-        # Slot
-        "slot.title": "🎰 Máquina Tragamonedas de Trades",
-        "slot.description": "¡Gira la máquina y gana trades!",
-        "slot.rewards": "Premios",
-        "slot.rewardsDescription": "🍀 = 3 trades (épico)\n⚽ = 2 trades (raro)\n❌ = Sin premio",
-        "slot.goodLuck": "¡Buena suerte!",
-        "slot.onCooldown": "⏰ Necesitas esperar para jugar de nuevo. Tiempo restante: {time}",
-        "slot.spinning": "Girando...",
-        "slot.spinningDescription": "¡La máquina está girando! ¡Buena suerte!",
-        "slot.result": "Resultado de la Máquina Tragamonedas",
-        "slot.congratulations": "🎉 ¡Felicidades!",
-        "slot.winDescription": "¡Has ganado {count} trades de rareza {rarity}!",
-        "slot.tryAgain": "😢 ¡Qué pena!",
-        "slot.loseDescription": "No has ganado nada esta vez. ¡Inténtalo de nuevo más tarde!",
-        "slot.playAgain": "¡Vuelve en 15 minutos para jugar de nuevo!",
-        "slot.rewardReceived": "🎁 ¡Has recibido {count} trades de rareza {rarity}!",
-        "slot.epicRarity": "épico",
-        "slot.rareRarity": "raro",
-        "slot.commonRarity": "común",
-
         # Comandos de idioma
         'current_language': 'Tu idioma actual es: **{language}**',
         'available_languages': 'Idiomas disponibles: {languages}',
         'invalid_language': '⚠️ Código de idioma inválido: "{code}". Usa pt, en o es.',
         'language_updated': '✅ ¡Tu idioma ha sido cambiado a **{language}**!',
     }
-}
 }
 
 # Função para traduzir uma mensagem

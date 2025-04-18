@@ -79,18 +79,13 @@ async def run_trade_process(code, expire_minutes=30, mode='trades', duration=Non
 
 # Verificador para canal de trades
 def in_trade_channel():
-    """Verificador para garantir que o comando seja usado apenas no canal de trades"""
     async def predicate(ctx):
-        # Acessar variável global TRADE_CHANNEL_ID
-        import os
-        from dotenv import load_dotenv
-        load_dotenv()
-        
-        # Obter ID do canal de trades
-        TRADE_CHANNEL_ID = os.getenv('TRADE_CHANNEL_ID', '1362490549528957140')
-        
+        # Debug - imprime os IDs para verificar
         channel_id = str(ctx.channel.id)
         config_id = str(TRADE_CHANNEL_ID).strip()
+        print(f"ID do canal atual: {channel_id}")
+        print(f"ID do canal configurado: {config_id}")
+        print(f"São iguais: {channel_id == config_id}")
         
         if not config_id:
             return True  # Se não estiver configurado, permite em qualquer canal
@@ -1063,12 +1058,5 @@ if __name__ == "__main__":
     # Definir o idioma padrão do bot
     from translations import t, get_user_language as get_lang, set_lang
     print(f"🌐 Idioma padrão do bot: {DEFAULT_LANGUAGE}")
-    
-    # Carregar extensões
-    try:
-        bot.load_extension('slot_machine')
-        print("✅ Módulo 'slot' carregado com sucesso")
-    except Exception as e:
-        print(f"❌ Erro ao carregar módulo 'slot': {e}")
     
     bot.run(TOKEN)
