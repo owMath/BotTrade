@@ -451,7 +451,7 @@ async def dropforce_command(ctx):
 
     channel = bot.get_channel(int(drop_channel_id))
     if channel:
-        drop_message = await channel.send(embed=embed, view=view)
+        drop_message = await channel.send(content=drop_role_mention, embed=embed, view=view)
         await ctx.send(t('drop_force_success', lang))
 
         # Iniciar o temporizador de expiração (10 minutos)
