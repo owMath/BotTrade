@@ -55,15 +55,6 @@ active_trades = {}
 user_trades = {}
 daily_claim_cooldown = {}
 users_with_active_trade = {}
-# Variáveis para gerenciar o sistema de drop
-drop_active = False
-drop_message = None
-drop_id = None
-drop_collectors = []
-drop_task = None
-drop_expiry_task = None
-drop_channel_id = os.getenv('DROP_CHANNEL_ID', TRADE_CHANNEL_ID)  # Usar o canal de trades como padrão
-DROP_ROLE_ID = os.getenv('DROP_ROLE_ID')  # ID do cargo para marcar em drops
 
 # Dicionário para armazenar preferências de idioma dos usuários
 user_languages = {}
@@ -421,54 +412,6 @@ async def trade_command(ctx, trades_count: int = 1, expire_minutes: int = 30):
         await ctx.send(t('command_error', lang))
     
     return
-
-@bot.command(name='dropforce')
-@commands.has_permissions(administrator=True)  # Apenas admins podem usar
-async def dropforce_command(ctx):
-    """Força manualmente a aparição de um drop de 1 trade"""
-    global drop_active, drop_message, drop_id, drop_collectors, drop_expiry_task
-
-    lang = get_user_language(ctx.author.id)
-
-    if drop_active:
-        await ctx.send(t('drop_already_claimed', lang))
-        return
-
-    drop_active = True
-    drop_id = generate_code(4)
-    drop_collectors = []
-
-    drop_role_mention = f"<@&{DROP_ROLE_ID}>" if DROP_ROLE_ID else ""
-    embed = discord.Embed(
-        title=t('drop_started', lang),
-        description=t('drop_footer_claimed', lang).format(count=0),
-        color=0x00ff99
-    )
-    embed.set_footer(text=t('drop_expire_soon', lang).format(minutes=10))
-
-    view = DropCollectView(drop_id, lang)  # Sua classe já personalizada
-
-    channel = bot.get_channel(int(drop_channel_id))
-    if channel:
-        drop_message = await channel.send(content=drop_role_mention, embed=embed, view=view)
-        await ctx.send(t('drop_force_success', lang))
-
-        # Iniciar o temporizador de expiração (10 minutos)
-        async def expire_drop():
-            global drop_active, drop_message
-            await asyncio.sleep(600)  # 10 minutos
-            if drop_active:
-                drop_active = False
-                if drop_message:
-                    embed.color = 0xff5555
-                    embed.title = "⏱️ " + t('drop_expired', lang)
-                    embed.description = t('drop_footer_expired', lang).format(count=len(drop_collectors))
-                    await drop_message.edit(embed=embed, view=None)
-                    drop_message = None
-
-        drop_expiry_task = asyncio.create_task(expire_drop())
-    else:
-        await ctx.send("❌ Não foi possível encontrar o canal de drop.")
 
 
 @bot.command(name='checktrademember')
@@ -1986,314 +1929,6 @@ class BoxReminderButton(discord.ui.Button):
                 await log_error(f"Erro ao enviar mensagem de erro (lembrete): {e}")
         
 
-# Classe para o botão de coletar drop
-class DropCollectButton(discord.ui.Button):
-    def __init__(self, drop_id, lang):
-        super().__init__(
-            style=discord.ButtonStyle.success,
-            label=t('drop_button', lang),
-            emoji="🎁",
-            custom_id=f"drop_button_{drop_id}"  # Obrigatório para ser persistente
-        )
-        self.drop_id = drop_id
-        self.lang = lang
-
-    async def callback(self, interaction):
-        try:
-            global drop_collectors, drop_message
-            user_id = interaction.user.id
-            lang = get_user_language(user_id)
-
-            # Verificar se o drop ainda está ativo
-            if not drop_active or drop_id != self.drop_id:
-                await interaction.response.send_message(
-                    t('drop_expired', lang),
-                    ephemeral=True
-                )
-                return
-
-            # Verificar se o usuário já coletou este drop
-            if db.is_connected():
-                has_collected = db.has_collected_drop(self.drop_id, user_id)
-            else:
-                has_collected = user_id in drop_collectors
-
-            if has_collected:
-                await interaction.response.send_message(
-                    t('drop_already_collected', lang),
-                    ephemeral=True
-                )
-                return
-
-            # Adicionar o usuário à lista de coletores
-            if db.is_connected():
-                db.add_drop_collector(self.drop_id, user_id)
-
-            if user_id not in drop_collectors:
-                drop_collectors.append(user_id)
-
-            # Dar 1 trade ao usuário
-            if user_id not in user_trades:
-                user_trades[user_id] = 0
-
-            user_trades[user_id] += 1
-
-            # Atualizar no MongoDB
-            if db.is_connected():
-                db.increment_user_trades(user_id, 1)
-
-            # Atualizar o embed com nova contagem
-            try:
-                if drop_message:
-                    embed = drop_message.embeds[0]
-                    embed.description = t('drop_footer_claimed', lang).format(count=len(drop_collectors))
-                    await drop_message.edit(embed=embed, view=self.view)
-            except Exception as e:
-                await log_error("Erro ao atualizar embed do drop após coleta", e)
-
-            # Informar ao usuário
-            await interaction.response.send_message(
-                t('drop_collected', lang),
-                ephemeral=True
-            )
-
-        except Exception as e:
-            await log_error(f"Erro no callback do botão de drop: {e}")
-            try:
-                await interaction.response.send_message(
-                    t('error_occurred', self.lang),
-                    ephemeral=True
-                )
-            except:
-                pass
-
-# View para o botão de coletar drop
-class DropCollectView(discord.ui.View):
-    def __init__(self, drop_id, lang):
-        super().__init__(timeout=None)  # View persistente
-        self.drop_id = drop_id
-        self.lang = lang
-        self.add_item(DropCollectButton(drop_id, lang))
-
-# Função para criar uma nova mensagem de drop
-async def create_drop():
-    global drop_active, drop_message, drop_id, drop_collectors, drop_expiry_task
-    
-    try:
-        # Verificar se já existe um drop ativo
-        if drop_active:
-            return False
-        
-        # Obter o canal para o drop
-        if drop_channel_id:
-            channel = bot.get_channel(int(drop_channel_id))
-            if not channel:
-                await log_error(f"Canal de drop não encontrado: {drop_channel_id}")
-                return False
-        else:
-            await log_error("ID do canal de drop não configurado")
-            return False
-        
-        # Gerar um ID único para o drop
-        drop_id = f"drop_{int(datetime.datetime.now().timestamp())}"
-        drop_collectors = []
-        drop_active = True
-        
-        # Registrar o horário do drop no banco de dados
-        if db.is_connected():
-            db.set_last_drop_time(datetime.datetime.now())
-        
-        # Idioma padrão para o drop (pode ser configurado depois)
-        lang = DEFAULT_LANGUAGE
-        
-        # Criar embed para o drop
-        embed = create_drop_embed(lang)
-        
-        # Criar view com botão de coletar
-        view = DropCollectView(drop_id, lang)
-        
-        # Verificar se há um cargo para marcar
-        content = ""
-        if DROP_ROLE_ID:
-            content = f"<@&{DROP_ROLE_ID}> " + t('drop_announcement', lang)
-        else:
-            content = t('drop_announcement', lang)
-        
-        # Enviar a mensagem
-        drop_message = await channel.send(content=content, embed=embed, view=view)
-        
-        # Agendar a expiração do drop após 10 minutos
-        if drop_expiry_task:
-            drop_expiry_task.cancel()
-        
-        drop_expiry_task = bot.loop.create_task(expire_drop(600))  # 10 minutos
-        
-        return True
-    except Exception as e:
-        await log_error(f"Erro ao criar drop: {e}")
-        return False
-
-# Função para criar o embed do drop
-def create_drop_embed(lang):
-    embed = discord.Embed(
-        title=t('drop_title', lang),
-        description=t('drop_description', lang),
-        color=0xf1c40f  # Dourado
-    )
-    
-    # Adicionar informação sobre tempo restante
-    embed.add_field(
-        name="⏱️ " + t('time_remaining', lang),
-        value=t('drop_expire_soon', lang, {'minutes': 10}),
-        inline=False
-    )
-    
-    # Adicionar lista de coletores (inicialmente vazia)
-    embed.add_field(
-        name="👥 " + t('drop_collectors', lang, {'users': ''}),
-        value=t('drop_empty_collectors', lang),
-        inline=False
-    )
-    
-    # Adicionar timestamp
-    embed.timestamp = datetime.datetime.now()
-    
-    return embed
-
-# Função para atualizar a mensagem de drop com novos coletores
-async def update_drop_message():
-    global drop_message, drop_collectors
-    
-    if not drop_active or not drop_message:
-        return
-    
-    try:
-        # Obter idioma
-        lang = DEFAULT_LANGUAGE
-        
-        # Obter lista de coletores do banco de dados se disponível
-        if db.is_connected():
-            db_collectors = db.get_drop_collectors(drop_id)
-            if db_collectors:
-                drop_collectors = db_collectors
-        
-        # Atualizar o embed
-        embed = drop_message.embeds[0]
-        
-        # Atualizar o campo de coletores
-        if drop_collectors:
-            # Transformar IDs em menções ou nomes de usuários
-            collector_mentions = []
-            for user_id in drop_collectors:
-                user = bot.get_user(user_id)
-                if user:
-                    collector_mentions.append(user.mention)
-                else:
-                    collector_mentions.append(f"ID: {user_id}")
-            
-            collectors_text = ", ".join(collector_mentions)
-            
-            # Atualizar o campo existente
-            for i, field in enumerate(embed.fields):
-                if "👥" in field.name:
-                    embed.set_field_at(
-                        i,
-                        name="👥 " + t('drop_collectors', lang, {'users': ''}),
-                        value=collectors_text,
-                        inline=False
-                    )
-                    break
-        
-        # Atualizar a mensagem
-        await drop_message.edit(embed=embed)
-    except Exception as e:
-        await log_error(f"Erro ao atualizar mensagem de drop: {e}")
-
-# Função para expirar um drop após o tempo determinado
-async def expire_drop(seconds=600):
-    global drop_active, drop_message, drop_id, drop_collectors
-    
-    try:
-        # Aguardar o tempo especificado
-        await asyncio.sleep(seconds)
-        
-        # Verificar se o drop ainda está ativo
-        if not drop_active:
-            return
-        
-        # Desativar o drop
-        drop_active = False
-        
-        # Atualizar a mensagem para indicar que expirou
-        if drop_message:
-            try:
-                # Desabilitar o botão
-                view = DropCollectView(drop_id, DEFAULT_LANGUAGE)
-                for item in view.children:
-                    item.disabled = True
-                
-                # Atualizar o embed
-                embed = drop_message.embeds[0]
-                
-                # Atualizar o campo de tempo restante
-                for i, field in enumerate(embed.fields):
-                    if "⏱️" in field.name:
-                        embed.set_field_at(
-                            i,
-                            name="⏱️ " + t('status', DEFAULT_LANGUAGE),
-                            value=t('drop_expired', DEFAULT_LANGUAGE),
-                            inline=False
-                        )
-                        break
-                
-                # Enviar a mensagem atualizada
-                await drop_message.edit(embed=embed, view=view)
-            except Exception as e:
-                await log_error(f"Erro ao atualizar mensagem de drop expirado: {e}")
-    except asyncio.CancelledError:
-        # Tarefa foi cancelada, não fazer nada
-        pass
-    except Exception as e:
-        await log_error(f"Erro ao expirar drop: {e}")
-
-# Função para verificar e criar drops automáticos
-async def check_and_create_drop():
-    global drop_task
-    
-    while True:
-        try:
-            # Verificar se há um drop ativo
-            if drop_active:
-                # Se há um drop ativo, apenas aguardar e verificar novamente
-                await asyncio.sleep(60)  # Verificar a cada minuto
-                continue
-            
-            # Verificar quando foi o último drop
-            last_drop_time = None
-            if db.is_connected():
-                last_drop_time = db.get_last_drop_time()
-            
-            current_time = datetime.datetime.now()
-            
-            # Se não houver registro do último drop, criar um agora
-            if not last_drop_time:
-                await create_drop()
-                await asyncio.sleep(3600)  # Aguardar 1 hora
-                continue
-            
-            # Verificar se já passou 1 hora desde o último drop
-            time_diff = current_time - last_drop_time
-            if time_diff.total_seconds() >= 3600:  # 1 hora em segundos
-                await create_drop()
-                await asyncio.sleep(3600)  # Aguardar 1 hora
-            else:
-                # Calcular quanto tempo falta para o próximo drop
-                seconds_left = 3600 - time_diff.total_seconds()
-                await asyncio.sleep(min(seconds_left, 60))  # Verificar novamente em 1 minuto ou quando for hora do próximo drop
-        except Exception as e:
-            await log_error(f"Erro na verificação de drops automáticos: {e}")
-            await asyncio.sleep(60)  # Em caso de erro, tentar novamente em 1 minuto
-
 async def send_box_reminder(user, box_time, lang):
     """Função para enviar o lembrete quando o cooldown do box acabar"""
     try:
@@ -2377,63 +2012,6 @@ async def box_command(ctx):
         await log_error(f"Erro no comando box: {e}")
         await ctx.send(t('command_error', lang))
 
-@bot.command(name='expiredrop')
-@commands.has_permissions(administrator=True)  # Restringe apenas para administradores
-async def expiredrop_command(ctx):
-    """Comando para encerrar um drop ativo manualmente"""
-    # Obter idioma do usuário
-    lang = get_user_language(ctx.author.id)
-    
-    try:
-        global drop_active, drop_message, drop_id, drop_collectors, drop_expiry_task
-        
-        # Verificar se há um drop ativo
-        if not drop_active or not drop_message:
-            await ctx.send(t('drop_none_active', lang))
-            return
-        
-        # Cancelar a tarefa de expiração automática
-        if drop_expiry_task:
-            drop_expiry_task.cancel()
-            drop_expiry_task = None
-        
-        # Desativar o drop
-        drop_active = False
-        
-        # Atualizar a mensagem para indicar que foi encerrado manualmente
-        try:
-            # Desabilitar o botão
-            view = DropCollectView(drop_id, lang)
-            for item in view.children:
-                item.disabled = True
-            
-            # Atualizar o embed
-            embed = drop_message.embeds[0]
-            
-            # Atualizar o campo de tempo restante
-            for i, field in enumerate(embed.fields):
-                if "⏱️" in field.name:
-                    embed.set_field_at(
-                        i,
-                        name="⏱️ " + t('status', lang),
-                        value=t('drop_manual_expired', lang),
-                        inline=False
-                    )
-                    break
-            
-            # Enviar a mensagem atualizada
-            await drop_message.edit(embed=embed, view=view)
-        except Exception as e:
-            await log_error(f"Erro ao atualizar mensagem de drop encerrado: {e}")
-        
-        # Confirmar que o drop foi encerrado
-        await ctx.send(t('drop_manual_expired', lang))
-        print("[DROP] ❌ Drop encerrado manualmente pelo comando !expiredrop.")
-        print("[DROP] ⏳ Novo drop automático será tentado em 1 hora.")
-    except Exception as e:
-        await log_error(f"Erro no comando expiredrop: {e}")
-        await ctx.send(t('command_error', lang))
-
 @bot.command(name='resetbox')
 @commands.has_permissions(administrator=True)  # Restringe apenas para administradores
 async def resetbox_command(ctx, member: discord.Member):
@@ -2504,12 +2082,6 @@ async def help_command(ctx):
         embed.add_field(
             name="!slot", 
             value=t('help_slot', lang), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!expiredrop", 
-            value=t('help_expiredrop', lang), 
             inline=False
         )
         
@@ -2927,33 +2499,6 @@ async def cleanup_expired_trades():
             
         await asyncio.sleep(60)  # Verificar a cada minuto
 
-async def auto_drop_loop():
-    await bot.wait_until_ready()
-    while not bot.is_closed():
-        try:
-            if not drop_active:
-                print("[DROP] ⏰ Nenhum drop ativo. Criando novo drop automático...")
-                drop_channel = bot.get_channel(int(drop_channel_id))
-                if drop_channel:
-                    class DummyCtx:
-                        def __init__(self, channel):
-                            self.channel = channel
-                            self.author = channel.guild.me
-                        async def send(self, *args, **kwargs):
-                            return await self.channel.send(*args, **kwargs)
-                    dummy_ctx = DummyCtx(drop_channel)
-                    await dropforce_command(dummy_ctx)
-                else:
-                    print("[DROP] ⚠️ Canal de drop não encontrado.")
-            else:
-                print("[DROP] 🟡 Já existe um drop ativo. Esperando próximo ciclo...")
-
-            await asyncio.sleep(3600)  # Espera 1 hora
-        except Exception as e:
-            await log_error("Erro na tarefa de auto drop", e)
-            await asyncio.sleep(60)
-
-
 @bot.event
 async def on_ready():
     """Evento disparado quando o bot está pronto"""
@@ -2970,22 +2515,11 @@ async def on_ready():
         # Iniciar tarefa de sincronização com MongoDB
         bot.loop.create_task(sync_data_to_mongodb())
         
-        # Iniciar tarefa de verificação de drops
-        bot.loop.create_task(check_and_create_drop())
-        
-        # Iniciar loop de drop automático
-        bot.loop.create_task(auto_drop_loop())  
-        
         # Iniciar tarefa de limpeza de trades expirados
         bot.loop.create_task(cleanup_expired_trades())
-
-        # Registrar a View persistente do botão de drop
-        bot.add_view(DropCollectView("placeholder", "pt"))  # Use qualquer idioma e um drop_id genérico
-        print("✅ DropCollectView registrada como persistente")
-
     except Exception as e:
         await log_error(f"Erro no evento on_ready: {e}")
-        
+
 # Executar o bot com o token do Discord
 if __name__ == "__main__":
     if not TOKEN:
