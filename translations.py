@@ -38,27 +38,7 @@ TRANSLATIONS = {
         'check_trade_can_claim': 'Pode fazer claim novamente',
         'check_trade_never_claimed': 'Nunca fez claim',
         'check_trade_timestamp': 'Último claim: {time}',
-        'help_checktrademember': 'Verifica quantos trades um usuário possui e mostra informações sobre seu último claim diário.', 
-        
-        # Drop
-        'drop_title': '🎁 Drop de Trade Disponível!',
-        'drop_description': 'Clique no botão abaixo para receber 1 trade grátis!',
-        'drop_button': 'Coletar Trade',
-        'drop_collected': 'Você coletou 1 trade com sucesso!',
-        'drop_already_collected': 'Você já coletou este drop.',
-        'drop_expired': 'Este drop expirou.',
-        'drop_expire_soon': 'Este drop expira em {minutes} minutos.',
-        'drop_collectors': 'Coletado por: {users}',
-        'drop_empty_collectors': 'Ninguém coletou ainda.',
-        'drop_announcement': '🎁 Um novo drop de trade está disponível! Colete seu trade grátis!',
-        'drop_cooldown': 'O próximo drop estará disponível em {hours}h {minutes}m.',
-        'drop_manual_expired': 'O drop foi encerrado manualmente.',
-        'help_expiredrop': 'Encerra um drop ativo manualmente.',
-        'drop_none_active': 'Não há nenhum drop ativo para encerrar.',
-        'drop_started': '🎉 Um novo drop apareceu! Clique abaixo para resgatar!',
-        'drop_footer_claimed': '{count} usuário(s) já resgataram este drop.',
-        'drop_footer_expired': '{count} usuário(s) resgataram este drop. (Expirado)',
-        'drop_force_success': '🚀 Drop forçado com sucesso!',
+        'help_checktrademember': 'Verifica quantos trades um usuário possui e mostra informações sobre seu último claim diário.',   
         
         # Box Game
         'box_game_title': '🎮 Jogo das Caixas',
@@ -277,26 +257,6 @@ TRANSLATIONS = {
         'check_trade_timestamp': 'Last claim: {time}',
         'help_checktrademember': 'Checks how many trades a user has and shows information about their last daily claim.',
         
-        # Drop
-        'drop_title': '🎁 Trade Drop Available!',
-        'drop_description': 'Click the button below to receive 1 free trade!',
-        'drop_button': 'Claim Trade',
-        'drop_collected': 'You successfully claimed 1 trade!',
-        'drop_already_collected': 'You have already claimed this drop.',
-        'drop_expired': 'This drop has expired.',
-        'drop_expire_soon': 'This drop expires in {minutes} minutes.',
-        'drop_collectors': 'Claimed by: {users}',
-        'drop_empty_collectors': 'No one has claimed it yet.',
-        'drop_announcement': '🎁 A new trade drop is available! Claim your free trade!',
-        'drop_cooldown': 'The next drop will be available in {hours}h {minutes}m.',
-        'drop_manual_expired': 'The drop has been manually closed.',
-        'help_expiredrop': 'Manually ends an active drop.',
-        'drop_none_active': 'There is no active drop to end.',
-        'drop_started': '🎉 A new drop has appeared! Click below to claim it!.',
-        'drop_footer_claimed': '{count} user(s) have already claimed this drop.',
-        'drop_footer_expired': '{count} user(s) claimed this drop. (Expired)',
-        'drop_force_success': '🚀 Drop forced successfully!',
-                
         # Box Game
         'box_game_title': '🎮 Box Game',
         'box_game_desc': '{user}, choose one of the boxes below! One contains a trade, the others are empty.',
@@ -513,27 +473,6 @@ TRANSLATIONS = {
         'check_trade_never_claimed': 'Nunca reclamó',
         'check_trade_timestamp': 'Último claim: {time}',
         'help_checktrademember': 'Verifica cuántos trades tiene un usuario y muestra información sobre su último claim diario.',
-        
-        # Drop
-        'drop_title': '🎁 ¡Drop de Trade Disponible!',
-        'drop_description': '¡Haz clic en el botón de abajo para recibir 1 trade gratis!',
-        'drop_button': 'Reclamar Trade',
-        'drop_collected': '¡Reclamaste 1 trade con éxito!',
-        'drop_already_collected': 'Ya has reclamado este drop.',
-        'drop_expired': 'Este drop ha expirado.',
-        'drop_expire_soon': 'Este drop expira en {minutes} minutos.',
-        'drop_collectors': 'Reclamado por: {users}',
-        'drop_empty_collectors': 'Nadie lo ha reclamado aún.',
-        'drop_announcement': '🎁 ¡Un nuevo drop de trade está disponible! ¡Reclama tu trade gratis!',
-        'drop_cooldown': 'El próximo drop estará disponible en {hours}h {minutes}m.',
-        'drop_manual_expired': 'El drop fue cerrado manualmente.',
-        'help_expiredrop': 'Finaliza manualmente un drop activo.',
-        'drop_none_active': 'No hay ningún drop activo para cerrar.',
-        'drop_started': '🎉 ¡Ha aparecido una nuevo drop! ¡Haga clic a continuación para canjear!',
-        'drop_footer_claimed': '{count} usuario(s) ya reclamaron este drop.',
-        'drop_footer_expired': '{count} usuario(s) reclamaron este drop. (Expirado)',
-        'drop_force_success': '🚀 ¡Drop forzado con éxito!',
-
 
         # Box Game
         'box_game_title': '🎮 Juego de Cajas',
