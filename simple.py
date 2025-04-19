@@ -1989,7 +1989,12 @@ class BoxReminderButton(discord.ui.Button):
 # Classe para o botão de coletar drop
 class DropCollectButton(discord.ui.Button):
     def __init__(self, drop_id, lang):
-        super().__init__(style=discord.ButtonStyle.success, label=t('drop_button', lang), emoji="🎁")
+        super().__init__(
+            style=discord.ButtonStyle.success,
+            label=t('drop_button', lang),
+            emoji="🎁",
+            custom_id=f"drop_button_{drop_id}"  # Obrigatório para ser persistente
+        )
         self.drop_id = drop_id
         self.lang = lang
 
@@ -2065,7 +2070,7 @@ class DropCollectButton(discord.ui.Button):
 # View para o botão de coletar drop
 class DropCollectView(discord.ui.View):
     def __init__(self, drop_id, lang):
-        super().__init__(timeout=600)  # 10 minutos
+        super().__init__(timeout=None)  # View persistente
         self.drop_id = drop_id
         self.lang = lang
         self.add_item(DropCollectButton(drop_id, lang))
@@ -2968,13 +2973,19 @@ async def on_ready():
         # Iniciar tarefa de verificação de drops
         bot.loop.create_task(check_and_create_drop())
         
+        # Iniciar loop de drop automático
         bot.loop.create_task(auto_drop_loop())  
         
         # Iniciar tarefa de limpeza de trades expirados
         bot.loop.create_task(cleanup_expired_trades())
-    except Exception as e:
-        await log_error(f"Erro no evento on_ready: {e}")    
 
+        # Registrar a View persistente do botão de drop
+        bot.add_view(DropCollectView("placeholder", "pt"))  # Use qualquer idioma e um drop_id genérico
+        print("✅ DropCollectView registrada como persistente")
+
+    except Exception as e:
+        await log_error(f"Erro no evento on_ready: {e}")
+        
 # Executar o bot com o token do Discord
 if __name__ == "__main__":
     if not TOKEN:
