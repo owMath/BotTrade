@@ -566,18 +566,18 @@ class Database:
             return False
 
         try:
-            # Realiza a atualização (ou cria o documento se não existir)
-            self.user_languages_collection.update_one(
+            # Usar operação atômica para evitar condições de corrida
+            result = self.user_languages_collection.update_one(
                 {"user_id": user_id},  # filtro
                 {"$set": {
-                    "user_id": user_id,
-                    "language": language,
+                    "user_id": int(user_id),  # Garantir que é um inteiro
+                    "language": str(language).lower(),  # Garantir que é uma string em minúsculas
                     "updated_at": datetime.datetime.now()
                 }},
-                upsert=True
+                upsert=True  # Criar se não existir
             )
-            return True
-
+            
+            return result.modified_count > 0 or result.upserted_id is not None
         except Exception as e:
             print(f"❌ Erro ao definir idioma do usuário {user_id}: {e}")
             return False
@@ -721,3 +721,174 @@ class Database:
         except Exception as e:
             print(f"🔄 Reconectando ao MongoDB após falha de conexão: {e}")
             self.__init__()
+            
+    def bulk_update_user_trades(self, batch_data):
+        """Atualiza trades de múltiplos usuários de uma vez"""
+        if not self.is_connected():
+            return False
+        
+        try:
+            operations = []
+            for item in batch_data:
+                operations.append(pymongo.UpdateOne(
+                    {'user_id': item['user_id']},
+                    {'$set': item},
+                    upsert=True
+                ))
+            
+            if operations:
+                self.user_trades_collection.bulk_write(operations)
+            return True
+        except Exception as e:
+            print(f"❌ Erro ao atualizar trades em lote: {e}")
+            return False
+    
+    def bulk_update_claim_times(self, batch_data):
+        """Atualiza timestamps de claim de múltiplos usuários de uma vez"""
+        if not self.is_connected():
+            return False
+        
+        try:
+            operations = []
+            for item in batch_data:
+                operations.append(pymongo.UpdateOne(
+                    {'user_id': item['user_id']},
+                    {'$set': item},
+                    upsert=True
+                ))
+            
+            if operations:
+                self.daily_claim_collection.bulk_write(operations)
+            return True
+        except Exception as e:
+            print(f"❌ Erro ao atualizar claim times em lote: {e}")
+            return False
+        
+    def bulk_update_active_trades(self, batch_data):
+        """Atualiza trades ativos de múltiplos usuários de uma vez"""
+        if not self.is_connected():
+            return False
+        
+        try:
+            operations = []
+            for item in batch_data:
+                # Garantir que o campo 'code' existe
+                if 'code' not in item:
+                    continue
+                
+                code = item.pop('code')
+                operations.append(pymongo.UpdateOne(
+                    {'code': code},
+                    {'$set': item},
+                    upsert=True
+                ))
+            
+            if operations:
+                self.active_trades_collection.bulk_write(operations)
+            return True
+        except Exception as e:
+            print(f"❌ Erro ao atualizar trades ativos em lote: {e}")
+            return False
+    
+    def bulk_update_active_users(self, batch_data):
+        """Atualiza usuários com trades ativos de uma vez"""
+        if not self.is_connected():
+            return False
+        
+        try:
+            operations = []
+            for item in batch_data:
+                operations.append(pymongo.UpdateOne(
+                    {'user_id': item['user_id']},
+                    {'$set': item},
+                    upsert=True
+                ))
+            
+            if operations:
+                self.active_users_collection.bulk_write(operations)
+            return True
+        except Exception as e:
+            print(f"❌ Erro ao atualizar usuários ativos em lote: {e}")
+            return False
+    
+    def bulk_update_user_languages(self, batch_data):
+        """Atualiza idiomas de múltiplos usuários de uma vez"""
+        if not self.is_connected():
+            return False
+        
+        try:
+            operations = []
+            for item in batch_data:
+                # Validações mais rigorosas
+                user_id = item.get('user_id')
+                language = item.get('language')
+                
+                if not user_id or not isinstance(user_id, int):
+                    continue
+                
+                if language not in ['pt', 'en', 'es']:
+                    continue
+                
+                # Garantir que o timestamp esteja presente
+                updated_at = item.get('updated_at', datetime.datetime.now())
+                
+                operations.append(pymongo.UpdateOne(
+                    {'user_id': user_id},
+                    {'$set': {
+                        'user_id': user_id,
+                        'language': language,
+                        'updated_at': updated_at
+                    }},
+                    upsert=True
+                ))
+            
+            if operations:
+                self.user_languages_collection.bulk_write(operations)
+            return True
+        except Exception as e:
+            print(f"❌ Erro ao atualizar idiomas dos usuários em lote: {e}")
+            return False
+    
+    def bulk_update_slot_times(self, batch_data):
+        """Atualiza timestamps de slot de múltiplos usuários de uma vez"""
+        if not self.is_connected():
+            return False
+        
+        try:
+            operations = []
+            for item in batch_data:
+                operations.append(pymongo.UpdateOne(
+                    {'user_id': item['user_id']},
+                    {'$set': item},
+                    upsert=True
+                ))
+            
+            if operations:
+                self.slot_cooldowns_collection.bulk_write(operations)
+            return True
+        except Exception as e:
+            print(f"❌ Erro ao atualizar slot times em lote: {e}")
+            return False
+    
+    def bulk_update_box_times(self, batch_data):
+        """Atualiza timestamps de box de múltiplos usuários de uma vez"""
+        if not self.is_connected():
+            return False
+        
+        try:
+            operations = []
+            for item in batch_data:
+                operations.append(pymongo.UpdateOne(
+                    {'user_id': item['user_id']},
+                    {'$set': item},
+                    upsert=True
+                ))
+            
+            if operations:
+                self.box_cooldowns_collection.bulk_write(operations)
+            return True
+        except Exception as e:
+            print(f"❌ Erro ao atualizar box times em lote: {e}")
+            return False
+    
+        

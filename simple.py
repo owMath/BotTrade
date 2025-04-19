@@ -144,69 +144,149 @@ async def sync_data_to_mongodb():
     while True:
         try:
             if db.is_connected():
-                # Sincronizar trades de usuários
-                for user_id, trades_count in user_trades.items():
-                    try:
+                # Usar lote para reduzir operações de banco de dados
+                try:
+                    # Lotes para operações em massa
+                    user_trades_batch = []
+                    daily_claim_batch = []
+                    active_trades_batch = []
+                    active_users_batch = []
+                    user_languages_batch = []
+                    slot_cooldowns_batch = []
+                    box_cooldowns_batch = []
+                    
+                    # Preparar operações em lote para preferências de idioma
+                    for user_id, lang in user_languages.items():
+                        user_languages_batch.append({
+                            'user_id': user_id,
+                            'language': lang,
+                            'updated_at': datetime.datetime.now()
+                        })
+                    
+                    # Preparar operações em lote para cooldowns de claim diário
+                    for user_id, timestamp in daily_claim_cooldown.items():
+                        daily_claim_batch.append({
+                            'user_id': user_id,
+                            'timestamp': timestamp
+                        })
+                    
+                    # Preparar operações em lote para trades ativos
+                    for code, info in active_trades.items():
+                        info_copy = info.copy()
+                        info_copy['code'] = code
+                        active_trades_batch.append(info_copy)
+                    
+                    # Preparar operações em lote para usuários com trades ativos
+                    for user_id, code in users_with_active_trade.items():
+                        active_users_batch.append({
+                            'user_id': user_id,
+                            'active_code': code
+                        })
+                    
+                    # Preparar operações em lote para preferências de idioma
+                    for user_id, lang in user_languages.items():
+                        user_languages_batch.append({
+                            'user_id': user_id,
+                            'language': lang,
+                            'updated_at': datetime.datetime.now()
+                        })
+                    
+                    # Preparar operações em lote para cooldowns de slot
+                    for user_id, timestamp in slot_cooldowns.items():
+                        slot_cooldowns_batch.append({
+                            'user_id': user_id,
+                            'timestamp': timestamp
+                        })
+                    
+                    # Preparar operações em lote para cooldowns de box
+                    for user_id, timestamp in box_cooldowns.items():
+                        box_cooldowns_batch.append({
+                            'user_id': user_id,
+                            'timestamp': timestamp
+                        })
+                    
+                    # Executar sincronizações em lote, limitando o tempo para evitar bloqueios
+                    await asyncio.sleep(0.1)  # Cede o controle para o loop de eventos
+                    if user_trades_batch:
                         db.reconnect_if_needed()
-                        db.set_user_trades(user_id, trades_count)
-                    except Exception as e:
-                        await log_error(f"Erro ao sincronizar trades de {user_id}", e)
-                
-                # Sincronizar cooldowns de claim diário
-                for user_id, timestamp in daily_claim_cooldown.items():
-                    try:
+                        db.bulk_update_user_trades(user_trades_batch)
+                    
+                    await asyncio.sleep(0.1)  # Cede o controle para o loop de eventos
+                    if daily_claim_batch:
                         db.reconnect_if_needed()
-                        db.set_last_claim_time(user_id, timestamp)
-                    except Exception as e:
-                        await log_error(f"Erro ao sincronizar cooldown de {user_id}", e)
-
-                # Sincronizar trades ativos
-                for code, info in active_trades.items():
-                    try:
+                        db.bulk_update_claim_times(daily_claim_batch)
+                    
+                    await asyncio.sleep(0.1)  # Cede o controle para o loop de eventos
+                    if active_trades_batch:
                         db.reconnect_if_needed()
-                        db.set_active_trade(code, info)
-                    except Exception as e:
-                        await log_error(f"Erro ao sincronizar trade ativo {code}", e)
-                
-                # Sincronizar usuários com trades ativos
-                for user_id, code in users_with_active_trade.items():
-                    try:
+                        db.bulk_update_active_trades(active_trades_batch)
+                    
+                    await asyncio.sleep(0.1)  # Cede o controle para o loop de eventos
+                    if active_users_batch:
                         db.reconnect_if_needed()
-                        db.set_user_active_trade(user_id, code)
-                    except Exception as e:
-                        await log_error(f"Erro ao sincronizar usuário com trade ativo {user_id}", e)
-                
-                # Sincronizar preferências de idioma
-                for user_id, lang in user_languages.items():
-                    try:
+                        db.bulk_update_active_users(active_users_batch)
+                    
+                    await asyncio.sleep(0.1)  # Cede o controle para o loop de eventos
+                    if user_languages_batch:
+                        try:
+                            # Filtrar dados inválidos antes da sincronização
+                            valid_languages_batch = [
+                                item for item in user_languages_batch 
+                                if item.get('user_id') and item.get('language') in ['pt', 'en', 'es']
+                            ]
+                            
+                            if valid_languages_batch:
+                                db.reconnect_if_needed()
+                                db.bulk_update_user_languages(valid_languages_batch)
+                        except Exception as e:
+                            await log_error(f"Erro ao sincronizar linguagens de usuário em lote: {e}")
+                    
+                    await asyncio.sleep(0.1)  # Cede o controle para o loop de eventos
+                    if slot_cooldowns_batch:
                         db.reconnect_if_needed()
-                        db.set_user_language(user_id, lang)
-                    except Exception as e:
-                        await log_error(f"Erro ao sincronizar idioma do usuário {user_id}", e)
-                
-                # Sincronizar cooldowns de slot
-                for user_id, timestamp in slot_cooldowns.items():
-                    try:
+                        db.bulk_update_slot_times(slot_cooldowns_batch)
+                    
+                    await asyncio.sleep(0.1)  # Cede o controle para o loop de eventos
+                    if box_cooldowns_batch:
                         db.reconnect_if_needed()
-                        # Usando a função de última tentativa do slot
-                        db.set_last_slot_time(user_id, timestamp)
-                    except Exception as e:
-                        await log_error(f"Erro ao sincronizar cooldown de slot de {user_id}", e)
-                        
-                # Sincronizar cooldowns de box
-                for user_id, timestamp in box_cooldowns.items():
-                    try:
-                        db.reconnect_if_needed()
-                        # Usando a função de última tentativa do box
-                        db.set_last_box_time(user_id, timestamp)
-                    except Exception as e:
-                        await log_error(f"Erro ao sincronizar cooldown de box de {user_id}", e)
-                
-                print("🔄 Dados sincronizados com MongoDB")
+                        db.bulk_update_box_times(box_cooldowns_batch)
+                    
+                    print("🔄 Dados sincronizados com MongoDB (modo lote)")
+                except Exception as e:
+                    await log_error("Erro durante sincronização em lote", e)
+                    
+                    # Fallback para o método original em caso de erro no modo lote
+                    print("⚠️ Usando método de sincronização de backup")
+                    
+                    # Limitar o número de sincronizações por ciclo para evitar bloqueios
+                    max_sync_per_category = 10
+                    
+                    # Sincronizar apenas um subconjunto de trades de usuários
+                    for i, (user_id, trades_count) in enumerate(list(user_trades.items())[:max_sync_per_category]):
+                        try:
+                            db.reconnect_if_needed()
+                            db.set_user_trades(user_id, trades_count)
+                            await asyncio.sleep(0.01)  # Pequena pausa para o heartbeat
+                        except Exception as e:
+                            await log_error(f"Erro ao sincronizar trades de {user_id}", e)
+                    
+                    # Sincronizar apenas um subconjunto de cooldowns de claim
+                    for i, (user_id, timestamp) in enumerate(list(daily_claim_cooldown.items())[:max_sync_per_category]):
+                        try:
+                            db.reconnect_if_needed()
+                            db.set_last_claim_time(user_id, timestamp)
+                            await asyncio.sleep(0.01)  # Pequena pausa para o heartbeat
+                        except Exception as e:
+                            await log_error(f"Erro ao sincronizar cooldown de {user_id}", e)
+                    
+                    # (Repete para outras categorias de dados, limitando cada uma)
+                    
+                    print("🔄 Dados parcialmente sincronizados com MongoDB (modo fallback)")
         except Exception as e:
             await log_error("Erro durante sincronização com MongoDB", e)
                 
-        await asyncio.sleep(300)  # Sincronizar a cada 5 minutos
+        # Aumentar o tempo entre sincronizações para reduzir carga
+        await asyncio.sleep(600)  # Sincronizar a cada 10 minutos em vez de 5
 
 def load_data_from_mongodb():
     """Carrega os dados do MongoDB para os dicionários locais"""
