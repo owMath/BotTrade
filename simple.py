@@ -1668,6 +1668,8 @@ async def on_ready():
     print(f'Bot conectado como {bot.user.name}')
     activity = discord.Activity(type=discord.ActivityType.watching, name="trades | !help")
     await bot.change_presence(activity=activity)
+
+    await log_error("Bot iniciado com sucesso")
     
     # Carregar dados do MongoDB
     load_data_from_mongodb()
