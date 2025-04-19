@@ -438,6 +438,7 @@ async def dropforce_command(ctx):
     drop_id = generate_code(4)
     drop_collectors = []
 
+    drop_role_mention = f"<@&{DROP_ROLE_ID}>" if DROP_ROLE_ID else ""
     embed = discord.Embed(
         title=t('drop_started', lang),
         description=t('drop_footer_claimed', lang).format(count=0),
