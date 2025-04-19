@@ -1231,8 +1231,14 @@ async def slot_command(ctx):
     if db.is_connected():
         db.set_last_slot_time(user_id, current_time)
     
-    # Enviar mensagem com o resultado
-    await ctx.send(embed=embed)
+    # Calcular quando o próximo slot estará disponível
+    next_slot_time = current_time + datetime.timedelta(minutes=5)
+    
+    # Criar view com o botão de lembrete para o próximo slot
+    view = SlotReminderView(user_id, lang)
+    
+    # Enviar mensagem com o resultado e botão de lembrete
+    await ctx.send(embed=embed, view=view)
 
 @bot.command(name='resetslot')
 @commands.has_permissions(administrator=True)  # Restringe apenas para administradores
