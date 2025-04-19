@@ -32,7 +32,8 @@ class Database:
             self.active_users_collection = self.db['active_users']
             self.user_languages_collection = self.db['user_languages']
             self.guild_languages_collection = self.db['guild_languages']
-            self.slot_cooldowns_collection = self.db['slot_cooldowns'] # Nova coleção para cooldowns de slot
+            self.slot_cooldowns_collection = self.db['slot_cooldowns'] # Coleção para cooldowns de slot
+            self.box_cooldowns_collection = self.db['box_cooldowns'] # Nova coleção para cooldowns de box
             
             # Criar índices para otimizar consultas
             self.user_trades_collection.create_index('user_id', unique=True)
@@ -41,7 +42,8 @@ class Database:
             self.active_users_collection.create_index('user_id', unique=True)
             self.user_languages_collection.create_index('user_id', unique=True)
             self.guild_languages_collection.create_index('guild_id', unique=True)
-            self.slot_cooldowns_collection.create_index('user_id', unique=True) # Novo índice
+            self.slot_cooldowns_collection.create_index('user_id', unique=True)
+            self.box_cooldowns_collection.create_index('user_id', unique=True) # Novo índice para box
             
             print("✅ Conexão com MongoDB estabelecida com sucesso")
             
@@ -210,6 +212,51 @@ class Database:
             return False
             
         self.slot_cooldowns_collection.delete_one({'user_id': user_id})
+        return True
+    
+    # ===============================================
+    # Operações para Cooldown de Box Game
+    # ===============================================
+    
+    def get_last_box_time(self, user_id):
+        """Obtém o timestamp do último uso do jogo da caixa por um usuário."""
+        if not self.is_connected():
+            return None
+            
+        result = self.box_cooldowns_collection.find_one({'user_id': user_id})
+        return result['timestamp'] if result else None
+    
+    def set_last_box_time(self, user_id, timestamp=None):
+        """Define o timestamp do último uso do jogo da caixa por um usuário."""
+        if not self.is_connected():
+            return False
+            
+        if timestamp is None:
+            timestamp = datetime.datetime.now()
+            
+        self.box_cooldowns_collection.update_one(
+            {'user_id': user_id},
+            {'$set': {'user_id': user_id, 'timestamp': timestamp}},
+            upsert=True
+        )
+        return True
+    
+    def get_all_box_times(self):
+        """Obtém todos os registros de timestamps de uso do jogo da caixa."""
+        if not self.is_connected():
+            return {}
+            
+        result = {}
+        for doc in self.box_cooldowns_collection.find():
+            result[doc['user_id']] = doc['timestamp']
+        return result
+    
+    def remove_box_cooldown(self, user_id):
+        """Remove o cooldown do jogo da caixa de um usuário."""
+        if not self.is_connected():
+            return False
+            
+        self.box_cooldowns_collection.delete_one({'user_id': user_id})
         return True
     
     # ===============================================
@@ -525,15 +572,15 @@ class Database:
         return stats
         
     def reconnect_if_needed(self):
-            """
-            Tenta reconectar ao MongoDB se a conexão for perdida.
-            """
-            if not self.client:
-                self.__init__()
-                return
+        """
+        Tenta reconectar ao MongoDB se a conexão for perdida.
+        """
+        if not self.client:
+            self.__init__()
+            return
 
-            try:
-                self.client.admin.command('ping')
-            except:
-                print("🔄 Reconectando ao MongoDB após falha de conexão...")
-                self.__init__()
+        try:
+            self.client.admin.command('ping')
+        except:
+            print("🔄 Reconectando ao MongoDB após falha de conexão...")
+            self.__init__()

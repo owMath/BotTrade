@@ -60,6 +60,10 @@ user_languages = {}
 slot_cooldowns = {}
 slot_reminders = {}
 
+# Sistema de Box Game - novos dicionários
+box_cooldowns = {}
+box_reminders = {}
+
 # Semáforo para limitar o número de trades simultâneos
 MAX_CONCURRENT_TRADES = 2
 trade_semaphore = asyncio.Semaphore(MAX_CONCURRENT_TRADES)
@@ -176,6 +180,15 @@ async def sync_data_to_mongodb():
                     db.set_last_slot_time(user_id, timestamp)
                 except Exception as e:
                     await log_error(f"Erro ao sincronizar cooldown de slot de {user_id}", e)
+                    
+            # Sincronizar cooldowns de box
+            for user_id, timestamp in box_cooldowns.items():
+                try:
+                    db.reconnect_if_needed()
+                    # Usando a função de última tentativa do box (a ser implementada no Database)
+                    db.set_last_box_time(user_id, timestamp)
+                except Exception as e:
+                    await log_error(f"Erro ao sincronizar cooldown de box de {user_id}", e)
             
             print("🔄 Dados sincronizados com MongoDB")
                 
@@ -187,7 +200,7 @@ def load_data_from_mongodb():
         print("⚠️ MongoDB não está conectado. Usando armazenamento em memória.")
         return
         
-    global user_trades, daily_claim_cooldown, active_trades, users_with_active_trade, user_languages, slot_cooldowns
+    global user_trades, daily_claim_cooldown, active_trades, users_with_active_trade, user_languages, slot_cooldowns, box_cooldowns
     
     # Carregar trades de usuários
     user_trades_data = db.get_all_user_trades()
@@ -232,6 +245,16 @@ def load_data_from_mongodb():
     except Exception as e:
         print(f"❌ Erro ao carregar cooldowns de slot: {e}")
         slot_cooldowns = {}
+        
+    try:
+        # Carregar cooldowns de box
+        box_cooldowns_data = db.get_all_box_times()
+        if box_cooldowns_data:
+            box_cooldowns = box_cooldowns_data
+            print(f"✅ Carregados {len(box_cooldowns)} registros de cooldown de box do MongoDB")
+    except Exception as e:
+        print(f"❌ Erro ao carregar cooldowns de box: {e}")
+        box_cooldowns = {}
 
 # ===============================================
 # Comandos de Administrador
@@ -1268,6 +1291,292 @@ async def resetslot_command(ctx, member: discord.Member):
     else:
         await ctx.send(t('resetslot_not_on_cooldown', lang, {'user': member.display_name}))
 
+
+# ===============================================
+# Sistema de Box Game (Adivinhe a Caixa)
+# ===============================================
+
+# Classe para os botões do jogo da caixa
+class BoxGameButton(discord.ui.Button):
+    def __init__(self, box_number, is_winner, user_id, lang):
+        # Emoji de caixa para todos os botões inicialmente
+        super().__init__(style=discord.ButtonStyle.secondary, emoji="📦", custom_id=f"box_{box_number}")
+        self.box_number = box_number
+        self.is_winner = is_winner
+        self.user_id = user_id
+        self.lang = lang
+        
+    async def callback(self, interaction):
+        # Verificar se quem clicou é o dono do jogo
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                t('not_your_game', self.lang),
+                ephemeral=True
+            )
+            return
+            
+        # Desabilitar todos os botões para evitar múltiplas escolhas
+        for item in self.view.children:
+            item.disabled = True
+            
+            # Atualizar o emoji com base no resultado
+            if isinstance(item, BoxGameButton):
+                if item.is_winner:
+                    item.emoji = "🎁"  # Emoji de presente para a caixa vencedora
+                    item.style = discord.ButtonStyle.success
+                else:
+                    item.emoji = "❌"  # Emoji X para caixas vazias
+                    item.style = discord.ButtonStyle.danger
+                    
+        # Verifica se o usuário ganhou
+        if self.is_winner:
+            # Adicionar um trade ao usuário
+            if self.user_id not in user_trades:
+                user_trades[self.user_id] = 0
+                
+            user_trades[self.user_id] += 1
+            
+            # Atualizar no MongoDB
+            if db.is_connected():
+                db.increment_user_trades(self.user_id, 1)
+                
+            # Criar embed com resultado vitorioso
+            embed = discord.Embed(
+                title=t('box_win_title', self.lang),
+                description=t('box_win_desc', self.lang, {'box': self.box_number}),
+                color=0x00ff00
+            )
+            
+            embed.add_field(
+                name=t('box_prize', self.lang),
+                value=t('box_trade_won', self.lang),
+                inline=False
+            )
+            
+            embed.add_field(
+                name=t('box_total_trades', self.lang),
+                value=t('box_total_count', self.lang, {'count': user_trades[self.user_id]}),
+                inline=False
+            )
+            
+            # Atualizar a mensagem com o resultado (sem botão de lembrete)
+            await interaction.response.edit_message(embed=embed, view=self.view)
+        else:
+            # Criar embed com resultado de derrota
+            embed = discord.Embed(
+                title=t('box_lose_title', self.lang),
+                description=t('box_lose_desc', self.lang, {'box': self.box_number}),
+                color=0xff0000
+            )
+            
+            embed.add_field(
+                name=t('box_try_again', self.lang),
+                value=t('box_cooldown_info', self.lang),
+                inline=False
+            )
+            
+            # Atualizar cooldown no dicionário
+            current_time = datetime.datetime.now()
+            box_cooldowns[self.user_id] = current_time
+            
+            # Atualizar no MongoDB
+            if db.is_connected():
+                db.set_last_box_time(self.user_id, current_time)
+            
+            # Criar nova view que inclui o botão de lembrete
+            result_view = discord.ui.View()
+            
+            # Adicionar os botões desabilitados do jogo
+            for item in self.view.children:
+                result_view.add_item(item)
+            
+            # Adicionar botão de lembrete
+            remind_time = current_time + datetime.timedelta(minutes=5)
+            reminder_button = BoxReminderButton(self.user_id, self.lang, remind_time)
+            result_view.add_item(reminder_button)
+            
+            # Atualizar a mensagem com o resultado e o botão de lembrete
+            await interaction.response.edit_message(embed=embed, view=result_view)
+
+# View para o jogo da caixa
+class BoxGameView(discord.ui.View):
+    def __init__(self, user_id, lang):
+        super().__init__(timeout=60)  # 1 minuto para escolher
+        
+        # Escolher uma caixa aleatória para ser a vencedora (1-5)
+        winning_box = random.randint(1, 5)
+        
+        # Adicionar 5 botões (caixas)
+        for i in range(1, 6):
+            is_winner = (i == winning_box)
+            self.add_item(BoxGameButton(i, is_winner, user_id, lang))
+
+# Classe para o botão de lembrete do jogo da caixa
+class BoxReminderButton(discord.ui.Button):
+    def __init__(self, user_id, lang, box_time):
+        super().__init__(
+            style=discord.ButtonStyle.primary,
+            label=t('box_reminder_button', lang),
+            emoji="⏰"
+        )
+        self.user_id = user_id
+        self.lang = lang
+        self.box_time = box_time
+        
+    async def callback(self, interaction):
+        # Verificar se quem clicou é o dono do botão
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                t('not_your_button', self.lang),
+                ephemeral=True
+            )
+            return
+            
+        # Calcular quando o lembrete deve ser enviado
+        current_time = datetime.datetime.now()
+        time_diff = (self.box_time - current_time).total_seconds()
+        
+        if time_diff <= 0:
+            # O cooldown já acabou
+            await interaction.response.send_message(
+                t('box_already_available', self.lang),
+                ephemeral=True
+            )
+            return
+            
+        # Registrar o lembrete
+        box_reminders[self.user_id] = self.box_time
+        
+        # Confirmar com o usuário
+        await interaction.response.send_message(
+            t('box_reminder_set', self.lang, {
+                'minutes': int(time_diff / 60)
+            }),
+            ephemeral=True
+        )
+        
+        # Desativar o botão após o clique
+        self.disabled = True
+        await interaction.message.edit(view=self.view)
+        
+        # Agendar o lembrete
+        bot.loop.create_task(send_box_reminder(interaction.user, self.box_time, self.lang))
+
+# View para o botão de lembrete do jogo da caixa
+class BoxReminderView(discord.ui.View):
+    def __init__(self, user_id, lang):
+        super().__init__(timeout=300)  # 5 minutos de timeout
+        
+        # Calcular quando o box estará disponível novamente
+        current_time = datetime.datetime.now()
+        box_time = box_cooldowns.get(user_id, current_time)
+        remind_time = box_time + datetime.timedelta(minutes=5)
+        
+        # Adicionar o botão de lembrete
+        self.add_item(BoxReminderButton(user_id, lang, remind_time))
+
+async def send_box_reminder(user, box_time, lang):
+    """Função para enviar o lembrete quando o cooldown do box acabar"""
+    current_time = datetime.datetime.now()
+    time_diff = (box_time - current_time).total_seconds()
+    
+    if time_diff > 0:
+        # Esperar até o tempo do lembrete
+        await asyncio.sleep(time_diff)
+    
+    # Verificar se o usuário ainda tem o lembrete ativado
+    if user.id in box_reminders and box_reminders[user.id] == box_time:
+        try:
+            # Enviar mensagem de lembrete via DM
+            await user.send(t('box_reminder_message', lang))
+            
+            # Limpar o lembrete
+            del box_reminders[user.id]
+        except Exception as e:
+            print(f"❌ Erro ao enviar lembrete de box para {user.id}: {e}")
+
+@bot.command(name='box')
+@in_trade_channel()  # Verifica se o comando está sendo usado no canal correto
+async def box_command(ctx):
+    """Comando para jogar o jogo da caixa e ganhar trades"""
+    user_id = ctx.author.id
+    # Obter idioma do usuário
+    lang = get_user_language(user_id)
+    
+    # Verificar cooldown
+    current_time = datetime.datetime.now()
+    if user_id in box_cooldowns:
+        last_use = box_cooldowns[user_id]
+        time_diff = current_time - last_use
+        
+        # Verificar se já passaram 5 minutos desde o último uso
+        if time_diff.total_seconds() < 300:  # 5 minutos em segundos
+            minutes_left = 5 - (time_diff.total_seconds() / 60)
+            
+            # Criar embed para aviso de cooldown
+            embed = discord.Embed(
+                title=t('box_cooldown_title', lang),
+                description=t('box_cooldown_desc', lang, {
+                    'minutes': int(minutes_left),
+                    'seconds': int((minutes_left % 1) * 60)
+                }),
+                color=0xff9900
+            )
+            
+            # Criar view com o botão de lembrete
+            view = BoxReminderView(user_id, lang)
+            
+            await ctx.send(embed=embed, view=view)
+            return
+    
+    # Criar embed com instruções do jogo
+    embed = discord.Embed(
+        title=t('box_game_title', lang),
+        description=t('box_game_desc', lang, {'user': ctx.author.mention}),
+        color=0x3399ff
+    )
+    
+    # Adicionar informações sobre o prêmio
+    embed.add_field(
+        name=t('box_game_prize_title', lang),
+        value=t('box_game_prize_desc', lang),
+        inline=False
+    )
+    
+    # Criar a view com os botões do jogo
+    view = BoxGameView(user_id, lang)
+    
+    # Enviar mensagem com o jogo
+    await ctx.send(embed=embed, view=view)
+
+@bot.command(name='resetbox')
+@commands.has_permissions(administrator=True)  # Restringe apenas para administradores
+async def resetbox_command(ctx, member: discord.Member):
+    """Comando para administradores resetarem o cooldown do box de um usuário"""
+    # Obter idioma do usuário
+    lang = get_user_language(ctx.author.id)
+    
+    # Verificar se o membro foi especificado
+    if not member:
+        await ctx.send(t('resetbox_no_member', lang))
+        return
+    
+    # Remover o usuário do dicionário de cooldown
+    if member.id in box_cooldowns:
+        del box_cooldowns[member.id]
+        
+        # Remover qualquer lembrete pendente
+        if member.id in box_reminders:
+            del box_reminders[member.id]
+        
+        # Atualizar no MongoDB
+        if db.is_connected():
+            db.remove_box_cooldown(member.id)
+        
+        await ctx.send(t('resetbox_success', lang, {'user': member.display_name}))
+    else:
+        await ctx.send(t('resetbox_not_on_cooldown', lang, {'user': member.display_name}))
+
 @bot.command(name='ajuda')
 async def help_command(ctx):
     """Exibe ajuda sobre os comandos do bot"""
@@ -1305,6 +1614,12 @@ async def help_command(ctx):
     embed.add_field(
         name="!slot", 
         value=t('help_slot', lang), 
+        inline=False
+    )
+    
+    embed.add_field(
+        name="!box", 
+        value=t('help_box', lang), 
         inline=False
     )
     
@@ -1386,6 +1701,12 @@ async def adminhelp_command(ctx):
     embed.add_field(
         name="!resetslot [@usuário]", 
         value=t('help_resetslot', lang), 
+        inline=False
+    )
+    
+    embed.add_field(
+        name="!resetbox [@usuário]", 
+        value=t('help_resetbox', lang), 
         inline=False
     )
     
@@ -1591,6 +1912,7 @@ async def on_trade_completed(user_id, code):
 @status_command.error
 @givetrade_command.error
 @resetslot_command.error
+@resetbox_command.error
 @adminhelp_command.error
 @helpdb_command.error
 async def admin_command_error(ctx, error):
@@ -1605,6 +1927,7 @@ async def admin_command_error(ctx, error):
 @claimtrade_command.error
 @usetrade_command.error
 @slot_command.error
+@box_command.error
 async def channel_command_error(ctx, error):
     # Obter idioma do usuário
     lang = get_user_language(ctx.author.id)
