@@ -56,6 +56,10 @@ users_with_active_trade = {}
 # Dicionário para armazenar preferências de idioma dos usuários
 user_languages = {}
 
+# Sistema de slot machine - novos dicionários
+slot_cooldowns = {}
+slot_reminders = {}
+
 # Semáforo para limitar o número de trades simultâneos
 MAX_CONCURRENT_TRADES = 2
 trade_semaphore = asyncio.Semaphore(MAX_CONCURRENT_TRADES)
@@ -164,6 +168,15 @@ async def sync_data_to_mongodb():
                 except Exception as e:
                     await log_error(f"Erro ao sincronizar idioma do usuário {user_id}", e)
             
+            # Sincronizar cooldowns de slot
+            for user_id, timestamp in slot_cooldowns.items():
+                try:
+                    db.reconnect_if_needed()
+                    # Usando a função de última tentativa do slot (a ser implementada no Database)
+                    db.set_last_slot_time(user_id, timestamp)
+                except Exception as e:
+                    await log_error(f"Erro ao sincronizar cooldown de slot de {user_id}", e)
+            
             print("🔄 Dados sincronizados com MongoDB")
                 
         await asyncio.sleep(300)  # Sincronizar a cada 5 minutos
@@ -174,7 +187,7 @@ def load_data_from_mongodb():
         print("⚠️ MongoDB não está conectado. Usando armazenamento em memória.")
         return
         
-    global user_trades, daily_claim_cooldown, active_trades, users_with_active_trade, user_languages
+    global user_trades, daily_claim_cooldown, active_trades, users_with_active_trade, user_languages, slot_cooldowns
     
     # Carregar trades de usuários
     user_trades_data = db.get_all_user_trades()
@@ -209,6 +222,16 @@ def load_data_from_mongodb():
     except Exception as e:
             print(f"❌ Erro ao carregar preferências de idioma: {e}")
             user_languages = {}
+            
+    try:
+        # Carregar cooldowns de slot
+        slot_cooldowns_data = db.get_all_slot_times()  # Novo método a ser implementado
+        if slot_cooldowns_data:
+            slot_cooldowns = slot_cooldowns_data
+            print(f"✅ Carregados {len(slot_cooldowns)} registros de cooldown de slot do MongoDB")
+    except Exception as e:
+        print(f"❌ Erro ao carregar cooldowns de slot: {e}")
+        slot_cooldowns = {}
 
 # ===============================================
 # Comandos de Administrador
@@ -1011,6 +1034,414 @@ def get_user_language(user_id):
     # Retornar o idioma do usuário ou o padrão
     return user_languages.get(user_id, DEFAULT_LANGUAGE)
 
+# ===============================================
+# Sistema de Slot Machine
+# ===============================================
+
+# Classe para o botão de lembrete
+class SlotReminderButton(discord.ui.Button):
+    def __init__(self, user_id, lang, slot_time):
+        super().__init__(
+            style=discord.ButtonStyle.primary,
+            label=t('slot_reminder_button', lang),
+            emoji="⏰"
+        )
+        self.user_id = user_id
+        self.lang = lang
+        self.slot_time = slot_time
+        
+    async def callback(self, interaction):
+        # Verificar se quem clicou é o dono do botão
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                t('not_your_button', self.lang),
+                ephemeral=True
+            )
+            return
+            
+        # Calcular quando o lembrete deve ser enviado
+        current_time = datetime.datetime.now()
+        time_diff = (self.slot_time - current_time).total_seconds()
+        
+        if time_diff <= 0:
+            # O cooldown já acabou
+            await interaction.response.send_message(
+                t('slot_already_available', self.lang),
+                ephemeral=True
+            )
+            return
+            
+        # Registrar o lembrete
+        slot_reminders[self.user_id] = self.slot_time
+        
+        # Confirmar com o usuário
+        await interaction.response.send_message(
+            t('slot_reminder_set', self.lang, {
+                'minutes': int(time_diff / 60)
+            }),
+            ephemeral=True
+        )
+        
+        # Desativar o botão após o clique
+        self.disabled = True
+        await interaction.message.edit(view=self.view)
+        
+        # Agendar o lembrete
+        bot.loop.create_task(send_slot_reminder(interaction.user, self.slot_time, self.lang))
+
+# View para o botão de lembrete
+class SlotReminderView(discord.ui.View):
+    def __init__(self, user_id, lang):
+        super().__init__(timeout=300)  # 5 minutos de timeout
+        
+        # Calcular quando o slot estará disponível novamente
+        current_time = datetime.datetime.now()
+        slot_time = slot_cooldowns.get(user_id, current_time)
+        remind_time = slot_time + datetime.timedelta(minutes=5)
+        
+        # Adicionar o botão de lembrete
+        self.add_item(SlotReminderButton(user_id, lang, remind_time))
+
+async def send_slot_reminder(user, slot_time, lang):
+    """Função para enviar o lembrete quando o cooldown do slot acabar"""
+    current_time = datetime.datetime.now()
+    time_diff = (slot_time - current_time).total_seconds()
+    
+    if time_diff > 0:
+        # Esperar até o tempo do lembrete
+        await asyncio.sleep(time_diff)
+    
+    # Verificar se o usuário ainda tem o lembrete ativado
+    if user.id in slot_reminders and slot_reminders[user.id] == slot_time:
+        try:
+            # Enviar mensagem de lembrete via DM
+            await user.send(t('slot_reminder_message', lang))
+            
+            # Limpar o lembrete
+            del slot_reminders[user.id]
+        except Exception as e:
+            print(f"❌ Erro ao enviar lembrete de slot para {user.id}: {e}")
+
+@bot.command(name='slot')
+@in_trade_channel()  # Verifica se o comando está sendo usado no canal correto
+async def slot_command(ctx):
+    """Comando para jogar na slot machine e ganhar trades"""
+    user_id = ctx.author.id
+    # Obter idioma do usuário
+    lang = get_user_language(user_id)
+    
+    # Verificar cooldown
+    current_time = datetime.datetime.now()
+    if user_id in slot_cooldowns:
+        last_use = slot_cooldowns[user_id]
+        time_diff = current_time - last_use
+        
+        # Verificar se já passaram 5 minutos desde o último uso
+        if time_diff.total_seconds() < 300:  # 5 minutos em segundos
+            minutes_left = 5 - (time_diff.total_seconds() / 60)
+            
+            # Criar embed para aviso de cooldown
+            embed = discord.Embed(
+                title=t('slot_cooldown_title', lang),
+                description=t('slot_cooldown_desc', lang, {
+                    'minutes': int(minutes_left),
+                    'seconds': int((minutes_left % 1) * 60)
+                }),
+                color=0xff9900
+            )
+            
+            # Criar view com o botão de lembrete
+            view = SlotReminderView(user_id, lang)
+            
+            await ctx.send(embed=embed, view=view)
+            return
+    
+    # Emojis para o slot
+    emojis = ["🍒", "🍋", "🍉", "🍇", "💰", "⭐"]
+    
+    # Escolhe 3 símbolos aleatórios
+    results = [random.choice(emojis) for _ in range(3)]
+    
+    # Verificar resultado
+    trades_won = 0
+    result_text = ""
+    
+    # Todos os símbolos iguais (jackpot) = 3 trades
+    if results[0] == results[1] == results[2]:
+        trades_won = 3
+        result_text = t('slot_jackpot', lang)
+    # Dois símbolos iguais = 2 trades
+    elif results[0] == results[1] or results[1] == results[2] or results[0] == results[2]:
+        trades_won = 2
+        result_text = t('slot_two_match', lang)
+    # Nenhum símbolo igual = sem prêmio
+    else:
+        result_text = t('slot_no_match', lang)
+    
+    # Criar embed com o resultado
+    embed = discord.Embed(
+        title=t('slot_result_title', lang),
+        description=t('slot_result_desc', lang, {'user': ctx.author.mention}),
+        color=0xffcc00 if trades_won > 0 else 0xff5555
+    )
+    
+    # Adicionar o resultado visual
+    embed.add_field(
+        name=t('slot_machine', lang),
+        value=f"[ {results[0]} | {results[1]} | {results[2]} ]",
+        inline=False
+    )
+    
+    # Adicionar o resultado textual
+    embed.add_field(
+        name=t('slot_result', lang),
+        value=result_text,
+        inline=False
+    )
+    
+    # Adicionar quantidade de trades ganhos
+    if trades_won > 0:
+        # Inicializar o usuário no dicionário se não existir
+        if user_id not in user_trades:
+            user_trades[user_id] = 0
+            
+        # Adicionar trades ganhos
+        user_trades[user_id] += trades_won
+        
+        # Atualizar no MongoDB
+        if db.is_connected():
+            db.increment_user_trades(user_id, trades_won)
+            
+        embed.add_field(
+            name=t('slot_prize', lang),
+            value=t('slot_trades_won', lang, {'count': trades_won}),
+            inline=False
+        )
+        
+        embed.add_field(
+            name=t('slot_total_trades', lang),
+            value=t('slot_total_count', lang, {'count': user_trades[user_id]}),
+            inline=False
+        )
+    
+    # Atualizar cooldown
+    slot_cooldowns[user_id] = current_time
+    
+    # Atualizar no MongoDB
+    if db.is_connected():
+        db.set_last_slot_time(user_id, current_time)
+    
+    # Enviar mensagem com o resultado
+    await ctx.send(embed=embed)
+
+@bot.command(name='resetslot')
+@commands.has_permissions(administrator=True)  # Restringe apenas para administradores
+async def resetslot_command(ctx, member: discord.Member):
+    """Comando para administradores resetarem o cooldown do slot de um usuário"""
+    # Obter idioma do usuário
+    lang = get_user_language(ctx.author.id)
+    
+    # Verificar se o membro foi especificado
+    if not member:
+        await ctx.send(t('resetslot_no_member', lang))
+        return
+    
+    # Remover o usuário do dicionário de cooldown
+    if member.id in slot_cooldowns:
+        del slot_cooldowns[member.id]
+        
+        # Remover qualquer lembrete pendente
+        if member.id in slot_reminders:
+            del slot_reminders[member.id]
+        
+        # Atualizar no MongoDB
+        if db.is_connected():
+            db.remove_slot_cooldown(member.id)
+        
+        await ctx.send(t('resetslot_success', lang, {'user': member.display_name}))
+    else:
+        await ctx.send(t('resetslot_not_on_cooldown', lang, {'user': member.display_name}))
+
+@bot.command(name='ajuda')
+async def help_command(ctx):
+    """Exibe ajuda sobre os comandos do bot"""
+    # Obter idioma do usuário
+    lang = get_user_language(ctx.author.id)
+    
+    if ctx.author.guild_permissions.administrator:
+        # Se for admin, mostra também a ajuda de admin
+        await adminhelp_command(ctx)
+    
+    embed = discord.Embed(
+        title=t('embed_help_title', lang),
+        description=t('embed_help_desc', lang),
+        color=0xffbb00
+    )
+    
+    embed.add_field(
+        name="!listtrades", 
+        value=t('help_listtrades', lang), 
+        inline=False
+    )
+    
+    embed.add_field(
+        name="!claimtrade", 
+        value=t('help_claimtrade', lang), 
+        inline=False
+    )
+    
+    embed.add_field(
+        name="!usetrade [quantidade]", 
+        value=t('help_usetrade', lang),
+        inline=False
+    )
+    
+    embed.add_field(
+        name="!slot", 
+        value=t('help_slot', lang), 
+        inline=False
+    )
+    
+    embed.add_field(
+        name="!abort [código]", 
+        value=t('help_abort', lang), 
+        inline=False
+    )
+    
+    embed.add_field(
+        name="!tradeshistory", 
+        value=t('help_tradeshistory', lang), 
+        inline=False
+    )
+    
+    embed.add_field(
+        name="!ajuda", 
+        value=t('help_help', lang), 
+        inline=False
+    )
+    
+    embed.add_field(
+        name="!lang [pt/en/es]", 
+        value=t('help_lang', lang), 
+        inline=False
+    )
+    
+    await ctx.send(embed=embed)
+
+@bot.command(name='adminhelp')
+@commands.has_permissions(administrator=True)  # Restringe apenas para administradores
+async def adminhelp_command(ctx):
+    """Exibe ajuda sobre os comandos de administrador"""
+    # Obter idioma do usuário
+    lang = get_user_language(ctx.author.id)
+    
+    embed = discord.Embed(
+        title=t('embed_admin_help', lang),
+        description=t('embed_admin_help_desc', lang),
+        color=0xff5500
+    )
+    
+    embed.add_field(
+        name="!trade [quantidade] [tempo_expiração]", 
+        value=t('help_trade', lang), 
+        inline=False
+    )
+    
+    embed.add_field(
+        name="!timemode [duração] [tempo_expiração]", 
+        value=t('help_timemode', lang), 
+        inline=False
+    )
+    
+    embed.add_field(
+        name="!status [código]", 
+        value=t('help_status', lang), 
+        inline=False
+    )
+    
+    embed.add_field(
+        name="!givetrade [@usuário] [quantidade]", 
+        value=t('help_givetrade', lang), 
+        inline=False
+    )
+    
+    embed.add_field(
+        name="!activecodes", 
+        value=t('help_activecodes', lang), 
+        inline=False
+    )
+    
+    embed.add_field(
+        name="!resetclaim [@usuário]", 
+        value=t('help_resetclaim', lang), 
+        inline=False
+    )
+    
+    embed.add_field(
+        name="!resetslot [@usuário]", 
+        value=t('help_resetslot', lang), 
+        inline=False
+    )
+    
+    embed.add_field(
+        name="!stats [período]", 
+        value=t('help_stats', lang), 
+        inline=False
+    )
+    
+    await ctx.send(embed=embed)
+
+@bot.command(name='helpdb')
+@commands.has_permissions(administrator=True)  # Restringe apenas para administradores
+async def helpdb_command(ctx):
+    """Exibe informações sobre o status da conexão com o banco de dados"""
+    # Obter idioma do usuário
+    lang = get_user_language(ctx.author.id)
+    
+    embed = discord.Embed(
+        title=t('embed_db_status', lang),
+        color=0x0088ff
+    )
+    
+    if db.is_connected():
+        embed.description = t('db_connected', lang)
+        embed.add_field(
+            name="Informações", 
+            value=t('db_info', lang), 
+            inline=False
+        )
+        
+        # Adicionar estatísticas
+        user_trades_count = len(user_trades)
+        daily_cooldown_count = len(daily_claim_cooldown)
+        active_trades_count = len(active_trades)
+        active_users_count = len(users_with_active_trade)
+        
+        embed.add_field(
+            name="Estatísticas", 
+            value=t('db_stats', lang, {
+                'users': user_trades_count,
+                'cooldowns': daily_cooldown_count,
+                'active': active_trades_count,
+                'in_progress': active_users_count
+            }),
+            inline=False
+        )
+    else:
+        embed.description = t('db_disconnected', lang)
+        embed.add_field(
+            name="Atenção", 
+            value=t('db_memory_warning', lang), 
+            inline=False
+        )
+        embed.add_field(
+            name="Solução", 
+            value=t('db_solution', lang), 
+            inline=False
+        )
+    
+    await ctx.send(embed=embed)
+
 async def process_trade_with_dm(ctx, code, dm_message, trades_amount):
     """Processa um trade em segundo plano e envia atualizações via DM"""
     # Obter idioma do usuário
@@ -1137,174 +1568,6 @@ async def process_trade_with_dm(ctx, code, dm_message, trades_amount):
 # Update your process_trade variable to use the new DM function
 process_trade = process_trade_with_dm   # You can keep this for admin commands
 
-@bot.command(name='ajuda')
-async def help_command(ctx):
-    """Exibe ajuda sobre os comandos do bot"""
-    # Obter idioma do usuário
-    lang = get_user_language(ctx.author.id)
-    
-    if ctx.author.guild_permissions.administrator:
-        # Se for admin, mostra também a ajuda de admin
-        await adminhelp_command(ctx)
-    
-    embed = discord.Embed(
-        title=t('embed_help_title', lang),
-        description=t('embed_help_desc', lang),
-        color=0xffbb00
-    )
-    
-    embed.add_field(
-        name="!listtrades", 
-        value=t('help_listtrades', lang), 
-        inline=False
-    )
-    
-    embed.add_field(
-        name="!claimtrade", 
-        value=t('help_claimtrade', lang), 
-        inline=False
-    )
-    
-    embed.add_field(
-        name="!usetrade [quantidade]", 
-        value=t('help_usetrade', lang),
-        inline=False
-    )
-    
-    embed.add_field(
-        name="!abort [código]", 
-        value=t('help_abort', lang), 
-        inline=False
-    )
-    
-    embed.add_field(
-        name="!tradeshistory", 
-        value=t('help_tradeshistory', lang), 
-        inline=False
-    )
-    
-    embed.add_field(
-        name="!ajuda", 
-        value=t('help_help', lang), 
-        inline=False
-    )
-    
-    embed.add_field(
-        name="!lang [pt/en/es]", 
-        value=t('help_lang', lang), 
-        inline=False
-    )
-    
-    await ctx.send(embed=embed)
-
-@bot.command(name='adminhelp')
-@commands.has_permissions(administrator=True)  # Restringe apenas para administradores
-async def adminhelp_command(ctx):
-    """Exibe ajuda sobre os comandos de administrador"""
-    # Obter idioma do usuário
-    lang = get_user_language(ctx.author.id)
-    
-    embed = discord.Embed(
-        title=t('embed_admin_help', lang),
-        description=t('embed_admin_help_desc', lang),
-        color=0xff5500
-    )
-    
-    embed.add_field(
-        name="!trade [quantidade] [tempo_expiração]", 
-        value=t('help_trade', lang), 
-        inline=False
-    )
-    
-    embed.add_field(
-        name="!timemode [duração] [tempo_expiração]", 
-        value=t('help_timemode', lang), 
-        inline=False
-    )
-    
-    embed.add_field(
-        name="!status [código]", 
-        value=t('help_status', lang), 
-        inline=False
-    )
-    
-    embed.add_field(
-        name="!givetrade [@usuário] [quantidade]", 
-        value=t('help_givetrade', lang), 
-        inline=False
-    )
-    
-    embed.add_field(
-        name="!activecodes", 
-        value=t('help_activecodes', lang), 
-        inline=False
-    )
-    
-    embed.add_field(
-        name="!resetclaim [@usuário]", 
-        value=t('help_resetclaim', lang), 
-        inline=False
-    )
-    
-    embed.add_field(
-        name="!stats [período]", 
-        value=t('help_stats', lang), 
-        inline=False
-    )
-    
-    await ctx.send(embed=embed)
-
-@bot.command(name='helpdb')
-@commands.has_permissions(administrator=True)  # Restringe apenas para administradores
-async def helpdb_command(ctx):
-    """Exibe informações sobre o status da conexão com o banco de dados"""
-    # Obter idioma do usuário
-    lang = get_user_language(ctx.author.id)
-    
-    embed = discord.Embed(
-        title=t('embed_db_status', lang),
-        color=0x0088ff
-    )
-    
-    if db.is_connected():
-        embed.description = t('db_connected', lang)
-        embed.add_field(
-            name="Informações", 
-            value=t('db_info', lang), 
-            inline=False
-        )
-        
-        # Adicionar estatísticas
-        user_trades_count = len(user_trades)
-        daily_cooldown_count = len(daily_claim_cooldown)
-        active_trades_count = len(active_trades)
-        active_users_count = len(users_with_active_trade)
-        
-        embed.add_field(
-            name="Estatísticas", 
-            value=t('db_stats', lang, {
-                'users': user_trades_count,
-                'cooldowns': daily_cooldown_count,
-                'active': active_trades_count,
-                'in_progress': active_users_count
-            }),
-            inline=False
-        )
-    else:
-        embed.description = t('db_disconnected', lang)
-        embed.add_field(
-            name="Atenção", 
-            value=t('db_memory_warning', lang), 
-            inline=False
-        )
-        embed.add_field(
-            name="Solução", 
-            value=t('db_solution', lang), 
-            inline=False
-        )
-    
-    await ctx.send(embed=embed)
-
 # Limpar trades ativos de um usuário quando um trade é concluído
 @bot.event
 async def on_trade_completed(user_id, code):
@@ -1321,6 +1584,7 @@ async def on_trade_completed(user_id, code):
 @timemode_command.error
 @status_command.error
 @givetrade_command.error
+@resetslot_command.error
 @adminhelp_command.error
 @helpdb_command.error
 async def admin_command_error(ctx, error):
@@ -1334,6 +1598,7 @@ async def admin_command_error(ctx, error):
 @listtrades_command.error
 @claimtrade_command.error
 @usetrade_command.error
+@slot_command.error
 async def channel_command_error(ctx, error):
     # Obter idioma do usuário
     lang = get_user_language(ctx.author.id)
@@ -1418,7 +1683,6 @@ if __name__ == "__main__":
         print("⚠️ TRADE_CHANNEL_ID não está configurado. Comandos de usuário funcionarão em qualquer canal.")
     
     # Definir o idioma padrão do bot
-    from translations import t, get_user_language as get_lang, set_lang
     print(f"🌐 Idioma padrão do bot: {DEFAULT_LANGUAGE}")
     keep_alive()
     bot.run(TOKEN)

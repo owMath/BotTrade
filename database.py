@@ -32,6 +32,7 @@ class Database:
             self.active_users_collection = self.db['active_users']
             self.user_languages_collection = self.db['user_languages']
             self.guild_languages_collection = self.db['guild_languages']
+            self.slot_cooldowns_collection = self.db['slot_cooldowns'] # Nova coleção para cooldowns de slot
             
             # Criar índices para otimizar consultas
             self.user_trades_collection.create_index('user_id', unique=True)
@@ -40,6 +41,7 @@ class Database:
             self.active_users_collection.create_index('user_id', unique=True)
             self.user_languages_collection.create_index('user_id', unique=True)
             self.guild_languages_collection.create_index('guild_id', unique=True)
+            self.slot_cooldowns_collection.create_index('user_id', unique=True) # Novo índice
             
             print("✅ Conexão com MongoDB estabelecida com sucesso")
             
@@ -156,6 +158,59 @@ class Database:
         for doc in self.daily_claim_collection.find():
             result[doc['user_id']] = doc['timestamp']
         return result
+    
+    def remove_claim_cooldown(self, user_id):
+        """Remove o cooldown de claim diário de um usuário."""
+        if not self.is_connected():
+            return False
+            
+        self.daily_claim_collection.delete_one({'user_id': user_id})
+        return True
+    
+    # ===============================================
+    # Operações para Cooldown de Slot
+    # ===============================================
+    
+    def get_last_slot_time(self, user_id):
+        """Obtém o timestamp do último uso do slot por um usuário."""
+        if not self.is_connected():
+            return None
+            
+        result = self.slot_cooldowns_collection.find_one({'user_id': user_id})
+        return result['timestamp'] if result else None
+    
+    def set_last_slot_time(self, user_id, timestamp=None):
+        """Define o timestamp do último uso do slot por um usuário."""
+        if not self.is_connected():
+            return False
+            
+        if timestamp is None:
+            timestamp = datetime.datetime.now()
+            
+        self.slot_cooldowns_collection.update_one(
+            {'user_id': user_id},
+            {'$set': {'user_id': user_id, 'timestamp': timestamp}},
+            upsert=True
+        )
+        return True
+    
+    def get_all_slot_times(self):
+        """Obtém todos os registros de timestamps de uso do slot."""
+        if not self.is_connected():
+            return {}
+            
+        result = {}
+        for doc in self.slot_cooldowns_collection.find():
+            result[doc['user_id']] = doc['timestamp']
+        return result
+    
+    def remove_slot_cooldown(self, user_id):
+        """Remove o cooldown de slot de um usuário."""
+        if not self.is_connected():
+            return False
+            
+        self.slot_cooldowns_collection.delete_one({'user_id': user_id})
+        return True
     
     # ===============================================
     # Operações para Trades Ativos
@@ -400,6 +455,74 @@ class Database:
         except Exception as e:
             print(f"❌ Erro ao obter idiomas dos usuários: {e}")
             return {}
+    
+    # ===============================================
+    # Operações para Histórico de Trades
+    # ===============================================
+    
+    def get_user_trade_history(self, user_id):
+        """
+        Obtém o histórico de trades de um usuário
+        
+        Args:
+            user_id (int): ID do usuário
+            
+        Returns:
+            list: Lista de dicionários com informações dos trades
+        """
+        if not self.is_connected():
+            return []
+            
+        # Aqui você implementaria a consulta ao histórico de trades do usuário
+        # Por simplicidade, retornaremos uma lista vazia
+        return []
+    
+    def get_user_total_completed_trades(self, user_id):
+        """
+        Obtém o total de trades completados por um usuário
+        
+        Args:
+            user_id (int): ID do usuário
+            
+        Returns:
+            int: Número total de trades completados
+        """
+        if not self.is_connected():
+            return 0
+            
+        # Aqui você implementaria a contagem de trades completados
+        # Por simplicidade, retornaremos 0
+        return 0
+    
+    # ===============================================
+    # Operações para Estatísticas
+    # ===============================================
+    
+    def get_trade_stats(self, period="all"):
+        """
+        Obtém estatísticas de trades para o período especificado
+        
+        Args:
+            period (str): Período para as estatísticas (all, today, week, month)
+            
+        Returns:
+            dict: Dicionário com estatísticas
+        """
+        if not self.is_connected():
+            return {}
+            
+        # Aqui você implementaria a geração de estatísticas
+        # Por simplicidade, retornaremos um dicionário com estatísticas vazias
+        stats = {
+            'total_trades': 0,
+            'successful_trades': 0,
+            'failed_trades': 0,
+            'avg_processing_time': 0,
+            'most_active_user_id': None,
+            'most_active_user_count': 0
+        }
+        
+        return stats
         
     def reconnect_if_needed(self):
             """
