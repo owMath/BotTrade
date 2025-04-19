@@ -446,8 +446,7 @@ async def dropforce_command(ctx):
     )
     embed.set_footer(text=t('drop_expire_soon', lang).format(minutes=10))
 
-    view = discord.ui.View()
-    view.add_item(DropCollectButton(drop_id, lang))
+    view = DropCollectView(drop_id, lang)  # Sua classe já personalizada
 
     channel = bot.get_channel(int(drop_channel_id))
     if channel:
@@ -2066,7 +2065,9 @@ class DropCollectButton(discord.ui.Button):
 # View para o botão de coletar drop
 class DropCollectView(discord.ui.View):
     def __init__(self, drop_id, lang):
-        super().__init__(timeout=None)  # Sem timeout para permanência
+        super().__init__(timeout=600)  # 10 minutos
+        self.drop_id = drop_id
+        self.lang = lang
         self.add_item(DropCollectButton(drop_id, lang))
 
 # Função para criar uma nova mensagem de drop
