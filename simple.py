@@ -1261,7 +1261,11 @@ async def language_command(ctx, language_code=None):
             lang_names = {
                 'pt': 'Português',
                 'en': 'English',
-                'es': 'Español'
+                'es': 'Español',
+                'de': 'Deutsch',
+                'fr': 'Français',
+                'it': 'Italiano',
+                'pl': 'Polski'
             }
             lang_name = lang_names.get(current_lang, current_lang)
             
@@ -1269,13 +1273,13 @@ async def language_command(ctx, language_code=None):
             await ctx.send(t('current_language', current_lang, {'language': lang_name}))
             
             # Mostrar idiomas disponíveis
-            available_langs = ', '.join([f"{code} ({lang_names[code]})" for code in ['pt', 'en', 'es']])
+            available_langs = ', '.join([f"{code} ({lang_names[code]})" for code in lang_names.keys()])
             await ctx.send(t('available_languages', current_lang, {'languages': available_langs}))
             return
         
         # Verificar se o código de idioma é válido
         language_code = language_code.lower()
-        if language_code not in ['pt', 'en', 'es']:
+        if language_code not in ['pt', 'en', 'es', 'de', 'fr', 'it', 'pl']:
             # Obter o idioma atual para a mensagem de erro
             current_lang = get_user_language(user_id)
             await ctx.send(t('invalid_language', current_lang, {'code': language_code}))
@@ -1292,7 +1296,11 @@ async def language_command(ctx, language_code=None):
         lang_names = {
             'pt': 'Português',
             'en': 'English',
-            'es': 'Español'
+            'es': 'Español',
+            'de': 'Deutsch',
+            'fr': 'Français',
+            'it': 'Italiano',
+            'pl': 'Polski'
         }
         await ctx.send(t('language_updated', language_code, {'language': lang_names[language_code]}))
     except Exception as e:
