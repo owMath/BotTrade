@@ -2482,7 +2482,6 @@ async def on_trade_completed(user_id, code):
 @givetrade_command.error
 @resetslot_command.error
 @resetbox_command.error
-@resetuser_command.error
 @adminhelp_command.error
 @helpdb_command.error
 async def admin_command_error(ctx, error):
@@ -2625,6 +2624,19 @@ async def resetuser_command(ctx, member: discord.Member):
     except Exception as e:
         await log_error(f"Erro no comando resetuser: {e}")
         await ctx.send(t('command_error', lang))
+
+@resetuser_command.error
+async def resetuser_error(ctx, error):
+    try:
+        # Obter idioma do usuário
+        lang = get_user_language(ctx.author.id)
+        
+        if isinstance(error, commands.MissingPermissions):
+            await ctx.send(t('admin_only', lang))
+        else:
+            await log_error(f"Erro em comando resetuser: {error}")
+    except Exception as e:
+        await log_error(f"Erro ao tratar erro do comando resetuser: {e}")
 
 # Executar o bot com o token do Discord
 if __name__ == "__main__":
