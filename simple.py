@@ -1155,10 +1155,15 @@ async def usetrade_command(ctx, trades_amount: int = 2):
         # Verificar se o usuário já tem um trade em andamento
         if user_id in users_with_active_trade:
             active_code = users_with_active_trade[user_id]
-            # Send this message as a DM
-            await ctx.author.send(t('trade_already_active', lang, {'code': active_code}))
-            # Add a reaction to indicate a DM was sent
-            await ctx.message.add_reaction('✉️')
+            try:
+                # Send this message as a DM
+                await ctx.author.send(t('trade_already_active', lang, {'code': active_code}))
+                # Add a reaction to indicate a DM was sent
+                await ctx.message.add_reaction('✉️')
+            except discord.Forbidden:
+                # Usuário tem DMs bloqueadas, enviar mensagem no canal
+                await ctx.send(t('trade_already_active_public', lang, {'mention': ctx.author.mention}))
+                await ctx.send(t('dm_blocked', lang, {'user': ctx.author.mention}))
             return
         
         # Validar quantidade de trades
@@ -1179,6 +1184,20 @@ async def usetrade_command(ctx, trades_amount: int = 2):
         # Verificar se há trades simultâneos disponíveis
         if not trade_semaphore.locked() and trade_semaphore._value <= 0:
             await ctx.send(t('system_busy', lang))
+            return
+        
+        # Verificar se o usuário aceita DMs antes de gerar o código
+        try:
+            test_dm = await ctx.author.send(t('checking_dms', lang))
+            await test_dm.delete()  # Deletar a mensagem de teste após verificar
+        except discord.Forbidden:
+            # Se o usuário tiver DMs desativadas, notificar no canal
+            await ctx.send(t('dm_required', lang, {'user': ctx.author.mention}))
+            return
+        except Exception as e:
+            # Outro erro ao enviar DM
+            await log_error(f"Erro ao verificar DMs para {ctx.author.id}: {e}")
+            await ctx.send(t('dm_error', lang, {'user': ctx.author.mention}))
             return
         
         # Gerar um código para o trade
@@ -1213,37 +1232,72 @@ async def usetrade_command(ctx, trades_amount: int = 2):
         # Send a public message without the code
         await ctx.send(t('generating_trades', lang, {'amount': trades_amount, 'mention': ctx.author.mention}))
         
-        # Send the sensitive code information via DM
-        dm_message = await ctx.author.send(t('trade_processing', lang, {'amount': trades_amount, 'code': code}))
+        try:
+            # Send the sensitive code information via DM
+            dm_message = await ctx.author.send(t('trade_processing', lang, {'amount': trades_amount, 'code': code}))
+            
+            # Add a reaction to indicate that a DM was sent
+            await ctx.message.add_reaction('✉️')
+            
+            # Processar o trade com a quantidade especificada (via DM)
+            await process_trade_with_dm(ctx, code, dm_message, trades_amount)
+            
+            # Deduzir a quantidade de trades solicitada do usuário
+            user_trades[user_id] -= trades_amount
+            
+            # Atualizar no MongoDB
+            if db.is_connected():
+                db.decrement_user_trades(user_id, trades_amount)
+            
+            # Informar quantos trades restantes o usuário tem via DM
+            await ctx.author.send(t('trades_used', lang, {'count': user_trades[user_id]}))
+        except discord.Forbidden:
+            # Se o usuário tiver DMs desativadas após o início do processo
+            await ctx.send(t('dm_blocked_during_trade', lang, {'user': ctx.author.mention}))
+            
+            # Cancelar o trade e limpar dicionários
+            if user_id in users_with_active_trade:
+                del users_with_active_trade[user_id]
+            
+            if code in active_trades:
+                del active_trades[code]
+                
+            # Atualizar no MongoDB
+            if db.is_connected():
+                db.remove_user_active_trade(user_id)
+                db.delete_active_trade(code)
+        except Exception as e:
+            await log_error(f"Erro ao processar trade: {e}")
+            await ctx.send(t('trade_error_public', lang, {'mention': ctx.author.mention}))
+            
+            # Limpar dicionários em caso de erro
+            if user_id in users_with_active_trade:
+                del users_with_active_trade[user_id]
+            
+            # Atualizar no MongoDB
+            if db.is_connected():
+                db.remove_user_active_trade(user_id)
+        finally:
+            # Remover usuário do dicionário de usuários com trades ativos
+            if user_id in users_with_active_trade:
+                del users_with_active_trade[user_id]
+                
+                # Atualizar no MongoDB
+                if db.is_connected():
+                    db.remove_user_active_trade(user_id)
+    except Exception as e:
+        user_id = ctx.author.id
+        lang = get_user_language(user_id)
+        await log_error(f"Erro no comando usetrade: {e}")
+        await ctx.send(t('command_error', lang))
         
-        # Add a reaction to indicate that a DM was sent
-        await ctx.message.add_reaction('✉️')
-        
-        # Processar o trade com a quantidade especificada (via DM)
-        await process_trade_with_dm(ctx, code, dm_message, trades_amount)
-        
-        # Deduzir a quantidade de trades solicitada do usuário
-        user_trades[user_id] -= trades_amount
-        
-        # Atualizar no MongoDB
-        if db.is_connected():
-            db.decrement_user_trades(user_id, trades_amount)
-        
-        # Informar quantos trades restantes o usuário tem via DM
-        await ctx.author.send(t('trades_used', lang, {'count': user_trades[user_id]}))
-        
-        # Remover usuário do dicionário de usuários com trades ativos
+        # Garantir que o usuário não fique com trade preso em caso de erro
         if user_id in users_with_active_trade:
             del users_with_active_trade[user_id]
             
             # Atualizar no MongoDB
             if db.is_connected():
                 db.remove_user_active_trade(user_id)
-    except Exception as e:
-        user_id = ctx.author.id
-        lang = get_user_language(user_id)
-        await log_error(f"Erro no comando usetrade: {e}")
-        await ctx.send(t('command_error', lang))
 
 # ===============================================
 # Comandos de Idioma
@@ -2204,6 +2258,12 @@ async def adminhelp_command(ctx):
             inline=False
         )
         
+        embed.add_field(
+            name="!resetuser [@usuário]", 
+            value=t('Resetar código de trade ativo de um usuário'), 
+            inline=False
+        )
+        
         await ctx.send(embed=embed)
     except Exception as e:
         user_id = ctx.author.id
@@ -2422,6 +2482,7 @@ async def on_trade_completed(user_id, code):
 @givetrade_command.error
 @resetslot_command.error
 @resetbox_command.error
+@resetuser_command.error
 @adminhelp_command.error
 @helpdb_command.error
 async def admin_command_error(ctx, error):
@@ -2527,6 +2588,43 @@ async def on_ready():
         bot.loop.create_task(cleanup_expired_trades())
     except Exception as e:
         await log_error(f"Erro no evento on_ready: {e}")
+
+@bot.command(name='resetuser')
+@commands.has_permissions(administrator=True)  # Restringe apenas para administradores
+async def resetuser_command(ctx, member: discord.Member):
+    """Comando para administradores resetarem o status de trade ativo de um usuário"""
+    # Obter idioma do usuário
+    lang = get_user_language(ctx.author.id)
+    
+    try:
+        # Verificar se o membro foi especificado
+        if not member:
+            await ctx.send(t('resetuser_no_member', lang))
+            return
+        
+        # Remover o usuário do dicionário de usuários com trades ativos
+        if member.id in users_with_active_trade:
+            active_code = users_with_active_trade[member.id]
+            del users_with_active_trade[member.id]
+            
+            # Atualizar no MongoDB
+            if db.is_connected():
+                db.remove_user_active_trade(member.id)
+            
+            # Se o código existir nos trades ativos, também marca como falhou
+            if active_code in active_trades:
+                active_trades[active_code]['status'] = 'failed'
+                
+                # Atualizar no MongoDB
+                if db.is_connected():
+                    db.update_active_trade_status(active_code, 'failed')
+            
+            await ctx.send(t('resetuser_success', lang, {'user': member.display_name, 'code': active_code}))
+        else:
+            await ctx.send(t('resetuser_no_active_trade', lang, {'user': member.display_name}))
+    except Exception as e:
+        await log_error(f"Erro no comando resetuser: {e}")
+        await ctx.send(t('command_error', lang))
 
 # Executar o bot com o token do Discord
 if __name__ == "__main__":
