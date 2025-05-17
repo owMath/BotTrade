@@ -2990,10 +2990,10 @@ async def dice_command(ctx):
         value=f"🎲 {d1} + 🎲 {d2} = **{soma}**",
         inline=False
     )
-    if trades_won == 5:
-        embed.add_field(name=t('dice_prize', lang), value=t('dice_win_5', lang), inline=False)
-    elif trades_won == 3:
+    if trades_won == 3:
         embed.add_field(name=t('dice_prize', lang), value=t('dice_win_3', lang), inline=False)
+    elif trades_won == 2:
+        embed.add_field(name=t('dice_prize', lang), value=t('dice_win_2', lang), inline=False)
     elif trades_won == 1:
         embed.add_field(name=t('dice_prize', lang), value=t('dice_win_1', lang), inline=False)
     else:
