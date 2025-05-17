@@ -40,6 +40,41 @@ TRANSLATIONS = {
         'check_trade_timestamp': 'Último claim: {time}',
         'help_checktrademember': 'Verifica quantos trades um usuário possui e mostra informações sobre seu último claim diário.',   
         
+        'help_trade': '!trade = quantidade fixa de trades, cada código processa um número exato de trades.',
+        'help_timemode': '!timemode = duração fixa de tempo, o código processa trades enquanto durar o tempo.',
+        'help_status': '!status = verifica o status do trade.',
+        'help_givetrade': '!givetrade = dar trade para alguém.',
+        'help_abort': '!abort = cancelar um code.',
+
+        # Giveaway
+        'giveaway_title': '🎉 SORTEIO DE TRADES! 🎉',
+        'giveaway_desc': 'Prêmio: **{prize}**\nQuantidade: **{trades} trades**\nClique em 🎉 para participar!\n\nDuração: **{duration}** minutos\nGanhadores: **{winners}**',
+        'giveaway_footer': 'Iniciado por {admin}',
+        'giveaway_end_title': '🎊 SORTEIO FINALIZADO! 🎊',
+        'giveaway_end_desc': 'Ganhador(es): {winners}\nPrêmio: **{prize}**\nCada um recebe **{trades} trades**!',
+        'giveaway_dm': '🎉 Parabéns! Você ganhou **{trades} trades** ({prize}) no sorteio do servidor {server}!',
+        'giveaway_role_required': 'Apenas membros com o cargo {role} podem participar deste sorteio.',
+        'giveaway_no_role': 'Você não possui o cargo necessário para participar deste sorteio.',
+        'giveaway_no_eligible': 'Ninguém com o cargo necessário participou do sorteio!',
+
+        # Dice
+        'dice_result_title': '🎲 Resultado do Dado',
+        'dice_result_desc': '{user} rolou dois dados!',
+        'dice_roll': 'Rolagem',
+        'dice_prize': 'Prêmio',
+        'dice_win_3': '🎉 Parabéns! Você tirou 12 e ganhou **3 trades**!',
+        'dice_win_2': 'Muito bom! Você tirou 10 ou 11 e ganhou **2 trades**!',
+        'dice_win_1': 'Você tirou entre 7 e 9 e ganhou **1 trade**!',
+        'dice_no_win': 'Não foi dessa vez! A soma foi menor que 7, nenhum trade ganho.',
+        'dice_total_trades': 'Total de Trades',
+        'dice_total_count': 'Agora você tem **{count}** trades.',
+        'dice_cooldown_title': '⏳ Cooldown do Dado Ativo',
+        'dice_cooldown_desc': 'Você precisa esperar mais **{minutes} minutos e {seconds} segundos** para jogar novamente.',
+        'dice_reminder_button': 'Lembrar quando disponível',
+        'dice_reminder_set': 'Você receberá um lembrete em {minutes} minutos quando puder jogar novamente.',
+        'dice_reminder_message': '🎲 O minigame do dado está disponível novamente! Use !dice para jogar.',
+        'dice_already_available': 'O minigame já está disponível! Use !dice para jogar.',
+
         # Box Game
         'box_game_title': '🎮 Jogo das Caixas',
         'box_game_desc': '{user}, escolha uma das caixas abaixo! Uma delas contém um trade, as outras estão vazias.',
@@ -67,6 +102,14 @@ TRANSLATIONS = {
         'resetbox_not_on_cooldown': '{user} não está em cooldown do jogo da caixa.',
         'help_box': 'Jogar o jogo das caixas para ganhar trades.',
         'help_resetbox': 'Reseta o cooldown de box de um usuário.',
+        'help_stats': 'Mostra estatísticas de trades. Períodos: all, today, week, month.',
+        'help_giveaway': 'Inicia um sorteio de trades com restrição de cargo. Exemplo: !giveaway 60 1 5 @VIP Prêmio VIP',
+        'help_resetuser': 'Resetar código de trade ativo de um usuário',
+        'help_deletegiveaway': 'Deleta um sorteio ativo usando o ID da mensagem.',
+        'giveaway_not_found': '❌ Mensagem de sorteio não encontrada.',
+        'giveaway_no_permission': '❌ Sem permissão para acessar a mensagem do sorteio.',
+        'giveaway_invalid_message': '❌ A mensagem especificada não é um sorteio válido.',
+        'giveaway_deleted': '✅ Sorteio deletado com sucesso!',
         
          # Sistema de Slot
         'slot_cooldown_title': '🕒 Cooldown do Slot Ativo',
@@ -257,6 +300,35 @@ TRANSLATIONS = {
         'check_trade_timestamp': 'Last claim: {time}',
         'help_checktrademember': 'Checks how many trades a user has and shows information about their last daily claim.',
         
+        # Giveaway
+        'giveaway_title': '🎉 TRADES GIVEAWAY! 🎉',
+        'giveaway_desc': 'Prize: **{prize}**\nAmount: **{trades} trades**\nClick 🎉 to participate!\n\nDuration: **{duration}** minutes\nWinners: **{winners}**',
+        'giveaway_footer': 'Started by {admin}',
+        'giveaway_end_title': '🎊 GIVEAWAY ENDED! 🎊',
+        'giveaway_end_desc': 'Winner(s): {winners}\nPrize: **{prize}**\nEach gets **{trades} trades**!',
+        'giveaway_dm': '🎉 Congratulations! You won **{trades} trades** ({prize}) in the giveaway on {server}!',
+        'giveaway_role_required': 'Only members with the {role} role can participate in this giveaway.',
+        'giveaway_no_role': 'You do not have the required role to participate in this giveaway.',
+        'giveaway_no_eligible': 'No one with the required role participated in the giveaway!',
+
+        # Dice
+        'dice_result_title': '🎲 Dice Result',
+        'dice_result_desc': '{user} rolled two dice!',
+        'dice_roll': 'Roll',
+        'dice_prize': 'Prize',
+        'dice_win_3': '🎉 Congratulations! You rolled 12 and won **3 trades**!',
+        'dice_win_2': 'Great! You rolled 10 or 11 and won **2 trades**!',
+        'dice_win_1': 'You rolled between 7 and 9 and won **1 trade**!',
+        'dice_no_win': 'Not this time! The sum was less than 7, no trades won.',
+        'dice_total_trades': 'Total Trades',
+        'dice_total_count': 'You now have **{count}** trades.',
+        'dice_cooldown_title': '⏳ Dice Cooldown Active',
+        'dice_cooldown_desc': 'You need to wait **{minutes} minutes and {seconds} seconds** to play again.',
+        'dice_reminder_button': 'Remind me when available',
+        'dice_reminder_set': 'You will receive a reminder in {minutes} minutes when you can play again.',
+        'dice_reminder_message': '🎲 The dice minigame is available again! Use !dice to play.',
+        'dice_already_available': 'The minigame is already available! Use !dice to play.',
+
         # Box Game
         'box_game_title': '🎮 Box Game',
         'box_game_desc': '{user}, choose one of the boxes below! One contains a trade, the others are empty.',
@@ -474,6 +546,35 @@ TRANSLATIONS = {
         'check_trade_timestamp': 'Último claim: {time}',
         'help_checktrademember': 'Verifica cuántos trades tiene un usuario y muestra información sobre su último claim diario.',
 
+        # Giveaway
+        'giveaway_title': '🎉 ¡SORTEO DE TRADES! 🎉',
+        'giveaway_desc': 'Premio: **{prize}**\nCantidad: **{trades} trades**\n¡Haz clic en 🎉 para participar!\n\nDuración: **{duration}** minutos\nGanadores: **{winners}**',
+        'giveaway_footer': 'Iniciado por {admin}',
+        'giveaway_end_title': '🎊 ¡SORTEO FINALIZADO! 🎊',
+        'giveaway_end_desc': 'Ganador(es): {winners}\nPremio: **{prize}**\n¡Cada uno recibe **{trades} trades**!',
+        'giveaway_dm': '🎉 ¡Felicidades! Ganaste **{trades} trades** ({prize}) en el sorteo del servidor {server}!',
+        'giveaway_role_required': 'Solo los miembros con el rol {role} pueden participar en este sorteo.',
+        'giveaway_no_role': 'No tienes el rol necesario para participar en este sorteo.',
+        'giveaway_no_eligible': '¡Nadie con el rol necesario participó en el sorteo!',
+
+        # Dice
+        'dice_result_title': '🎲 Resultado del Dado',
+        'dice_result_desc': '¡{user} lanzó dos dados!',
+        'dice_roll': 'Lanzamiento',
+        'dice_prize': 'Premio',
+        'dice_win_3': '🎉 ¡Felicidades! Sacaste 12 y ganaste **3 trades**!',
+        'dice_win_2': '¡Muy bien! Sacaste 10 o 11 y ganaste **2 trades**!',
+        'dice_win_1': 'Sacaste entre 7 y 9 y ganaste **1 trade**!',
+        'dice_no_win': '¡No fue esta vez! La suma fue menor que 7, no ganaste trades.',
+        'dice_total_trades': 'Total de Trades',
+        'dice_total_count': 'Ahora tienes **{count}** trades.',
+        'dice_cooldown_title': '⏳ Cooldown del Dado Activo',
+        'dice_cooldown_desc': 'Necesitas esperar **{minutes} minutos y {seconds} segundos** para jugar de nuevo.',
+        'dice_reminder_button': 'Recordarme cuando esté disponible',
+        'dice_reminder_set': 'Recibirás un recordatorio en {minutes} minutos cuando puedas jugar de nuevo.',
+        'dice_reminder_message': '🎲 ¡El minijuego de dados está disponible de nuevo! Usa !dice para jugar.',
+        'dice_already_available': '¡El minijuego ya está disponible! Usa !dice para jugar.',
+
         # Box Game
         'box_game_title': '🎮 Juego de Cajas',
         'box_game_desc': '¡{user}, elige una de las cajas a continuación! Una contiene un trade, las demás están vacías.',
@@ -630,7 +731,7 @@ TRANSLATIONS = {
         'embed_admin_help_desc': 'Comandos disponibles solo para administradores:',
         'embed_db_status': '🗄️ Estado de la Base de Datos',
         
-        # Comandos de ajuda
+        # Comandos de ayuda
         'help_listtrades': 'Muestra cuántos intercambios tienes disponibles.',
         'help_claimtrade': 'Recibe tus 5 intercambios diarios (disponible cada 24 horas).',
         'help_usetrade': 'Usa uno de tus intercambios disponibles y genera un código para procesar la cantidad especificada de intercambios.\nEjemplo: `!usetrade 2` - Usa un intercambio para procesar 2 intercambios.\n⚠️ Solo puedes tener un intercambio activo a la vez. Espera a que se procese para usar otro.',
@@ -690,6 +791,35 @@ TRANSLATIONS = {
     'check_trade_never_claimed': 'N\'a jamais fait de réclamation',
     'check_trade_timestamp': 'Dernière réclamation: {time}',
     'help_checktrademember': 'Vérifie le nombre de trades d\'un utilisateur et affiche des informations sur sa dernière réclamation quotidienne.',
+
+    # Giveaway
+    'giveaway_title': '🎉 TIRAGE AU SORT DE TRADES ! 🎉',
+    'giveaway_desc': 'Prix : **{prize}**\nQuantité : **{trades} trades**\nCliquez sur 🎉 pour participer !\n\nDurée : **{duration}** minutes\nGagnants : **{winners}**',
+    'giveaway_footer': 'Lancé par {admin}',
+    'giveaway_end_title': '🎊 TIRAGE TERMINÉ ! 🎊',
+    'giveaway_end_desc': 'Gagnant(s) : {winners}\nPrix : **{prize}**\nChacun reçoit **{trades} trades** !',
+    'giveaway_dm': '🎉 Félicitations ! Vous avez gagné **{trades} trades** ({prize}) lors du tirage au sort sur le serveur {server} !',
+    'giveaway_role_required': 'Seuls les membres avec le rôle {role} peuvent participer à ce tirage au sort.',
+    'giveaway_no_role': 'Vous n\'avez pas le rôle requis pour participer à ce tirage au sort.',
+    'giveaway_no_eligible': 'Personne avec le rôle requis n\'a participé au tirage au sort !',
+
+    # Dice
+    'dice_result_title': '🎲 Résultat du Dé',
+    'dice_result_desc': '{user} a lancé deux dés !',
+    'dice_roll': 'Lancer',
+    'dice_prize': 'Prix',
+    'dice_win_3': '🎉 Félicitations ! Vous avez fait 12 et gagné **3 trades** !',
+    'dice_win_2': 'Bravo ! Vous avez fait 10 ou 11 et gagné **2 trades** !',
+    'dice_win_1': 'Vous avez fait entre 7 et 9 et gagné **1 trade** !',
+    'dice_no_win': 'Pas cette fois ! La somme était inférieure à 7, aucun trade gagné.',
+    'dice_total_trades': 'Total de Trades',
+    'dice_total_count': 'Vous avez maintenant **{count}** trades.',
+    'dice_cooldown_title': '⏳ Cooldown du Dé Actif',
+    'dice_cooldown_desc': 'Vous devez attendre encore **{minutes} minutes et {seconds} secondes** pour rejouer.',
+    'dice_reminder_button': 'Me rappeler quand disponible',
+    'dice_reminder_set': 'Vous recevrez un rappel dans {minutes} minutes quand vous pourrez rejouer.',
+    'dice_reminder_message': '🎲 Le mini-jeu de dés est à nouveau disponible ! Utilisez !dice pour jouer.',
+    'dice_already_available': 'Le mini-jeu est déjà disponible ! Utilisez !dice pour jouer.',
 
     # Box Game
     'box_game_title': '🎮 Jeu des Boîtes',
@@ -840,6 +970,35 @@ TRANSLATIONS = {
     'check_trade_timestamp': 'Letzter Claim: {time}',
     'help_checktrademember': 'Überprüft die Anzahl der Trades eines Benutzers und zeigt Informationen über seinen letzten täglichen Claim an.',
 
+    # Giveaway
+    'giveaway_title': '🎉 TRADES-GEWINNSPIEL! 🎉',
+    'giveaway_desc': 'Preis: **{prize}**\nAnzahl: **{trades} Trades**\nKlicke auf 🎉 um teilzunehmen!\n\nDauer: **{duration}** Minuten\nGewinner: **{winners}**',
+    'giveaway_footer': 'Gestartet von {admin}',
+    'giveaway_end_title': '🎊 GEWINNSPIEL BEENDET! 🎊',
+    'giveaway_end_desc': 'Gewinner: {winners}\nPreis: **{prize}**\nJeder erhält **{trades} Trades**!',
+    'giveaway_dm': '🎉 Glückwunsch! Du hast **{trades} Trades** ({prize}) im Gewinnspiel auf dem Server {server} gewonnen!',
+    'giveaway_role_required': 'Nur Mitglieder mit der Rolle {role} können an diesem Gewinnspiel teilnehmen.',
+    'giveaway_no_role': 'Du hast nicht die erforderliche Rolle, um an diesem Gewinnspiel teilzunehmen.',
+    'giveaway_no_eligible': 'Niemand mit der erforderlichen Rolle hat am Gewinnspiel teilgenommen!',
+
+    # Dice
+    'dice_result_title': '🎲 Würfelergebnis',
+    'dice_result_desc': '{user} hat zwei Würfel geworfen!',
+    'dice_roll': 'Wurf',
+    'dice_prize': 'Preis',
+    'dice_win_3': '🎉 Glückwunsch! Du hast 12 geworfen und **3 Trades** gewonnen!',
+    'dice_win_2': 'Sehr gut! Du hast 10 oder 11 geworfen und **2 Trades** gewonnen!',
+    'dice_win_1': 'Du hast zwischen 7 und 9 geworfen und **1 Trade** gewonnen!',
+    'dice_no_win': 'Diesmal nicht! Die Summe war unter 7, kein Trade gewonnen.',
+    'dice_total_trades': 'Gesamte Trades',
+    'dice_total_count': 'Du hast jetzt **{count}** Trades.',
+    'dice_cooldown_title': '⏳ Würfel-Cooldown aktiv',
+    'dice_cooldown_desc': 'Du musst noch **{minutes} Minuten und {seconds} Sekunden** warten, um erneut zu spielen.',
+    'dice_reminder_button': 'Mich erinnern, wenn verfügbar',
+    'dice_reminder_set': 'Du erhältst in {minutes} Minuten eine Erinnerung, wenn du wieder spielen kannst.',
+    'dice_reminder_message': '🎲 Das Würfel-Minispiel ist wieder verfügbar! Benutze !dice zum Spielen.',
+    'dice_already_available': 'Das Minispiel ist bereits verfügbar! Benutze !dice zum Spielen.',
+
     # Box Game
     'box_game_title': '🎮 Kisten-Spiel',
     'box_game_desc': '{user}, wählen Sie eine der Kisten unten! Eine davon enthält einen Trade, die anderen sind leer.',
@@ -988,6 +1147,35 @@ TRANSLATIONS = {
     'check_trade_never_claimed': 'Non ha mai fatto un claim',
     'check_trade_timestamp': 'Ultimo claim: {time}',
     'help_checktrademember': 'Verifica il numero di trades di un utente e mostra informazioni sul suo ultimo claim giornaliero.',
+
+    # Giveaway
+    'giveaway_title': '🎉 GIVEAWAY DI TRADES! 🎉',
+    'giveaway_desc': 'Premio: **{prize}**\nQuantità: **{trades} trades**\nClicca su 🎉 per partecipare!\n\nDurata: **{duration}** minuti\nVincitori: **{winners}**',
+    'giveaway_footer': 'Avviato da {admin}',
+    'giveaway_end_title': '🎊 GIVEAWAY TERMINATO! 🎊',
+    'giveaway_end_desc': 'Vincitore/i: {winners}\nPremio: **{prize}**\nOgnuno riceve **{trades} trades**!',
+    'giveaway_dm': '🎉 Complimenti! Hai vinto **{trades} trades** ({prize}) nel giveaway sul server {server}!',
+    'giveaway_role_required': 'Solo i membri con il ruolo {role} possono partecipare a questo giveaway.',
+    'giveaway_no_role': 'Non hai il ruolo richiesto per partecipare a questo giveaway.',
+    'giveaway_no_eligible': 'Nessuno con il ruolo richiesto ha partecipato al giveaway!',
+
+    # Dice
+    'dice_result_title': '🎲 Risultato dei Dadi',
+    'dice_result_desc': '{user} ha lanciato due dadi!',
+    'dice_roll': 'Lancio',
+    'dice_prize': 'Premio',
+    'dice_win_3': '🎉 Complimenti! Hai fatto 12 e vinto **3 trades**!',
+    'dice_win_2': 'Ottimo! Hai fatto 10 o 11 e vinto **2 trades**!',
+    'dice_win_1': 'Hai fatto tra 7 e 9 e vinto **1 trade**!',
+    'dice_no_win': 'Non questa volta! La somma era inferiore a 7, nessun trade vinto.',
+    'dice_total_trades': 'Totale Trades',
+    'dice_total_count': 'Ora hai **{count}** trades.',
+    'dice_cooldown_title': '⏳ Cooldown dei Dadi Attivo',
+    'dice_cooldown_desc': 'Devi aspettare ancora **{minutes} minuti e {seconds} secondi** per giocare di nuovo.',
+    'dice_reminder_button': 'Ricordami quando disponibile',
+    'dice_reminder_set': 'Riceverai un promemoria tra {minutes} minuti quando potrai giocare di nuovo.',
+    'dice_reminder_message': '🎲 Il minigioco dei dadi è di nuovo disponibile! Usa !dice per giocare.',
+    'dice_already_available': 'Il minigioco è già disponibile! Usa !dice per giocare.',
 
     # Box Game
     'box_game_title': '🎮 Gioco delle Scatole',
@@ -1138,6 +1326,35 @@ TRANSLATIONS = {
     'check_trade_timestamp': 'Ostatnie odebranie: {time}',
     'help_checktrademember': 'Sprawdza liczbę wymian użytkownika i pokazuje informacje o jego ostatnim dziennym odebraniu.',
 
+    # Giveaway
+    'giveaway_title': '🎉 LOSOWANIE TRADEÓW! 🎉',
+    'giveaway_desc': 'Nagroda: **{prize}**\nIlość: **{trades} trade(ów)**\nKliknij 🎉, aby wziąć udział!\n\nCzas trwania: **{duration}** minut\nZwycięzcy: **{winners}**',
+    'giveaway_footer': 'Rozpoczęte przez {admin}',
+    'giveaway_end_title': '🎊 LOSOWANIE ZAKOŃCZONE! 🎊',
+    'giveaway_end_desc': 'Zwycięzca/y: {winners}\nNagroda: **{prize}**\nKażdy otrzymuje **{trades} trade(ów)**!',
+    'giveaway_dm': '🎉 Gratulacje! Wygrałeś **{trades} trade(ów)** ({prize}) w losowaniu na serwerze {server}!',
+    'giveaway_role_required': 'Tylko członkowie z rolą {role} mogą brać udział w tym losowaniu.',
+    'giveaway_no_role': 'Nie masz wymaganej roli, aby wziąć udział w tym losowaniu.',
+    'giveaway_no_eligible': 'Nikt z wymaganą rolą nie wziął udziału w losowaniu!',
+
+    # Dice
+    'dice_result_title': '🎲 Wynik Kości',
+    'dice_result_desc': '{user} rzucił dwiema kośćmi!',
+    'dice_roll': 'Rzut',
+    'dice_prize': 'Nagroda',
+    'dice_win_3': '🎉 Gratulacje! Wyrzuciłeś 12 i wygrałeś **3 wymiany**!',
+    'dice_win_2': 'Świetnie! Wyrzuciłeś 10 lub 11 i wygrałeś **2 wymiany**!',
+    'dice_win_1': 'Wyrzuciłeś od 7 do 9 i wygrałeś **1 wymianę**!',
+    'dice_no_win': 'Tym razem nie! Suma była mniejsza niż 7, brak wygranych wymian.',
+    'dice_total_trades': 'Łączna liczba wymian',
+    'dice_total_count': 'Masz teraz **{count}** wymian.',
+    'dice_cooldown_title': '⏳ Aktywny cooldown kości',
+    'dice_cooldown_desc': 'Musisz poczekać jeszcze **{minutes} minut i {seconds} sekund**, aby zagrać ponownie.',
+    'dice_reminder_button': 'Przypomnij mi, gdy będzie dostępne',
+    'dice_reminder_set': 'Otrzymasz przypomnienie za {minutes} minut, gdy będziesz mógł zagrać ponownie.',
+    'dice_reminder_message': '🎲 Minigra z kośćmi jest ponownie dostępna! Użyj !dice, aby zagrać.',
+    'dice_already_available': 'Minigra jest już dostępna! Użyj !dice, aby zagrać.',
+
     # Gra w Pudełka
     'box_game_title': '🎮 Gra w Pudełka',
     'box_game_desc': '{user}, wybierz jedno z pudełek poniżej! Jedno z nich zawiera wymianę, pozostałe są puste.',
@@ -1188,7 +1405,7 @@ TRANSLATIONS = {
     'resetslot_no_member': '⚠️ Musisz oznaczyć członka, aby zresetować czas oczekiwania slotów.',
     'resetslot_success': '✅ Czas oczekiwania slotów dla **{user}** został zresetowany.',
     'resetslot_not_on_cooldown': '📭 **{user}** nie jest w czasie oczekiwania slotów.',
-    'help_slot': 'Graj w automaty, aby wygrać wymiany (5 minut czasu oczekiwania).',
+    'help_slot': 'Graj w automaty, aby wygrać wymiany (5 Minuten Abklingzeit).',
     'help_resetslot': 'Resetuje czas oczekiwania slotów użytkownika (admin).',
 
     # Komendy i odpowiedzi

@@ -381,15 +381,17 @@ class Database:
             print(f"❌ Erro ao definir trade ativo {code}: {e}")
             return False
     
-    def update_active_trade_status(self, code, status):
-        """Atualiza o status de um trade ativo."""
+    def update_active_trade_status(self, code, status, processing_time=None):
+        """Atualiza o status de um trade ativo e opcionalmente o tempo de processamento."""
         if not self.is_connected():
             return False
-            
         try:
+            update_fields = {'status': status}
+            if processing_time is not None:
+                update_fields['processing_time'] = processing_time
             self.active_trades_collection.update_one(
                 {'code': code},
-                {'$set': {'status': status}}
+                {'$set': update_fields}
             )
             return True
         except Exception as e:
@@ -692,17 +694,66 @@ class Database:
             return {}
             
         try:
-            # Aqui você implementaria a geração de estatísticas
-            # Por simplicidade, retornaremos um dicionário com estatísticas vazias
+            # Definir o filtro de data com base no período
+            now = datetime.datetime.now()
+            if period == "today":
+                start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            elif period == "week":
+                start_date = now - datetime.timedelta(days=7)
+            elif period == "month":
+                start_date = now - datetime.timedelta(days=30)
+            else:  # all
+                start_date = datetime.datetime.min
+
+            # Consultar trades no período
+            trades = self.active_trades_collection.find({
+                "timestamp": {"$gte": start_date}
+            })
+
+            # Inicializar estatísticas
             stats = {
                 'total_trades': 0,
                 'successful_trades': 0,
                 'failed_trades': 0,
-                'avg_processing_time': 0,
+                'total_processing_time': 0,
                 'most_active_user_id': None,
                 'most_active_user_count': 0
             }
-            
+
+            # Contador de trades por usuário
+            user_trades_count = {}
+
+            # Processar cada trade
+            for trade in trades:
+                stats['total_trades'] += 1
+                
+                # Contar trades por usuário
+                user_id = trade.get('user_id')
+                if user_id:
+                    user_trades_count[user_id] = user_trades_count.get(user_id, 0) + 1
+
+                # Contar sucessos e falhas
+                if trade.get('status') == 'completed':
+                    stats['successful_trades'] += 1
+                elif trade.get('status') == 'failed':
+                    stats['failed_trades'] += 1
+
+                # Acumular tempo de processamento
+                if 'processing_time' in trade:
+                    stats['total_processing_time'] += trade['processing_time']
+
+            # Calcular tempo médio de processamento
+            if stats['total_trades'] > 0:
+                stats['avg_processing_time'] = stats['total_processing_time'] / stats['total_trades']
+            else:
+                stats['avg_processing_time'] = 0
+
+            # Encontrar usuário mais ativo
+            if user_trades_count:
+                most_active_user = max(user_trades_count.items(), key=lambda x: x[1])
+                stats['most_active_user_id'] = most_active_user[0]
+                stats['most_active_user_count'] = most_active_user[1]
+
             return stats
         except Exception as e:
             print(f"❌ Erro ao obter estatísticas de trades para o período {period}: {e}")

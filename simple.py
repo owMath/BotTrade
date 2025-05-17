@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from database import Database  # Importar a classe de banco de dados
 from translations import t, get_user_language as get_lang # Importar funções de tradução
 from keep_alive import keep_alive
+import time
 
 async def log_error(message, exception=None):
     print(f"[ERRO] {message}")
@@ -71,6 +72,8 @@ box_reminders = {}
 MAX_CONCURRENT_TRADES = 2
 trade_semaphore = asyncio.Semaphore(MAX_CONCURRENT_TRADES)
 
+ADMIN_ID = 879910043418501132  # ID do administrador master
+
 def generate_code(length=6):
     """Gera um código aleatório para o trade"""
     characters = 'BCDFGHKLMNPQRSTVWX23456789'
@@ -119,16 +122,13 @@ async def run_trade_process(code, expire_minutes=30, mode='trades', duration=Non
 def in_trade_channel():
     async def predicate(ctx):
         try:
-            # Debug - imprime os IDs para verificar
+            # Permitir se for o admin master
+            if ctx.author.id == ADMIN_ID:
+                return True
             channel_id = str(ctx.channel.id)
             config_id = str(TRADE_CHANNEL_ID).strip()
-            print(f"ID do canal atual: {channel_id}")
-            print(f"ID do canal configurado: {config_id}")
-            print(f"São iguais: {channel_id == config_id}")
-            
             if not config_id:
                 return True  # Se não estiver configurado, permite em qualquer canal
-                
             return channel_id == config_id
         except Exception as e:
             print(f"❌ Erro ao verificar canal: {e}")
@@ -403,7 +403,7 @@ async def trade_command(ctx, trades_count: int = 1, expire_minutes: int = 30):
         # Processar trades em paralelo
         tasks = []
         for code, message in trade_messages:
-            task = asyncio.create_task(process_trade(ctx, code, message))
+            task = asyncio.create_task(process_trade(ctx, code, message, trades_count))
             tasks.append(task)
         
         await asyncio.gather(*tasks)
@@ -415,7 +415,7 @@ async def trade_command(ctx, trades_count: int = 1, expire_minutes: int = 30):
 
 
 @bot.command(name='checktrademember')
-@commands.has_permissions(administrator=True)  # Restringe apenas para administradores
+@commands.has_permissions(administrator=True)  # Agora restrito para administradores
 async def checktrademember_command(ctx, member: discord.Member = None):
     """Comando para administradores verificarem quantos trades um usuário possui"""
     # Obter idioma do usuário
@@ -571,7 +571,7 @@ async def timemode_command(ctx, duration: int = 30, expire_minutes: int = 30):
         initial_message = await ctx.send(t('trade_time_mode', lang, {'code': code, 'duration': duration, 'minutes': expire_minutes}))
         
         # Processar o trade em modo tempo
-        await process_trade(ctx, code, initial_message)
+        await process_trade(ctx, code, initial_message, duration)
     except Exception as e:
         await log_error(f"Erro no comando timemode: {e}")
         await ctx.send(t('command_error', lang))
@@ -678,6 +678,7 @@ async def status_command(ctx, code=None):
 
 
 @bot.command(name='abort')
+@commands.has_permissions(administrator=True)  # Agora restrito para administradores
 async def abort_command(ctx, code=None):
     """Comando para cancelar um código de trade ativo"""
     # Obter idioma do usuário
@@ -2183,6 +2184,42 @@ async def help_command(ctx):
             inline=False
         )
         
+        embed.add_field(
+            name="!resetbox [@usuário]", 
+            value=t('help_resetbox', lang), 
+            inline=False
+        )
+        
+        embed.add_field(
+            name="!stats [período]", 
+            value=t('help_stats', lang), 
+            inline=False
+        )
+        
+        embed.add_field(
+            name="!giveaway [duração] [ganhadores] [trades] [cargo] [prêmio]", 
+            value=t('help_giveaway', lang), 
+            inline=False
+        )
+        
+        embed.add_field(
+            name="!resetuser [@usuário]", 
+            value=t('Resetar código de trade ativo de um usuário'), 
+            inline=False
+        )
+        
+        embed.add_field(
+            name="!deletegiveaway [ID]", 
+            value=t('help_deletegiveaway', lang), 
+            inline=False
+        )
+        
+        embed.add_field(
+            name="!resetdice [@usuário]", 
+            value=t('help_resetdice', lang), 
+            inline=False
+        )
+        
         await ctx.send(embed=embed)
     except Exception as e:
         user_id = ctx.author.id
@@ -2219,6 +2256,12 @@ async def adminhelp_command(ctx):
         embed.add_field(
             name="!status [código]", 
             value=t('help_status', lang), 
+            inline=False
+        )
+
+        embed.add_field(
+            name="!abort [código]", 
+            value=t('help_abort', lang), 
             inline=False
         )
         
@@ -2261,6 +2304,30 @@ async def adminhelp_command(ctx):
         embed.add_field(
             name="!resetuser [@usuário]", 
             value=t('Resetar código de trade ativo de um usuário'), 
+            inline=False
+        )
+        
+        embed.add_field(
+            name="!checktrademember [@usuário]", 
+            value=t('help_checktrademember', lang), 
+            inline=False
+        )
+        
+        embed.add_field(
+            name="!giveaway [duração] [ganhadores] [trades] [cargo] [prêmio]", 
+            value=t('help_giveaway', lang), 
+            inline=False
+        )
+        
+        embed.add_field(
+            name="!deletegiveaway [ID]", 
+            value=t('help_deletegiveaway', lang), 
+            inline=False
+        )
+        
+        embed.add_field(
+            name="!resetdice [@usuário]", 
+            value=t('help_resetdice', lang), 
             inline=False
         )
         
@@ -2347,6 +2414,8 @@ async def process_trade_with_dm(ctx, code, dm_message, trades_amount):
         
         await dm_message.edit(content=t('trade_processing', lang, {'amount': trades_amount, 'code': code}))
         
+        # Medir tempo de processamento
+        start_time = time.time()
         # Adquirir semáforo para limitar trades simultâneos
         async with trade_semaphore:
             try:
@@ -2358,15 +2427,14 @@ async def process_trade_with_dm(ctx, code, dm_message, trades_amount):
                     None,
                     trades_amount  # Passando a quantidade de trades
                 )
-                
+                processing_time = time.time() - start_time
                 # Verificar se o processo foi bem-sucedido
                 if returncode == 0:
                     code_info['status'] = 'completed'
-                    
+                    code_info['processing_time'] = processing_time
                     # Atualizar no MongoDB
                     if db.is_connected():
-                        db.update_active_trade_status(code, 'completed')
-                    
+                        db.update_active_trade_status(code, 'completed', processing_time)
                     # Criar embed com o resultado
                     embed = discord.Embed(
                         title=t('trade_success', lang),
@@ -2374,7 +2442,6 @@ async def process_trade_with_dm(ctx, code, dm_message, trades_amount):
                         color=0x00ff00
                     )
                     embed.add_field(name="Código", value=f"**{code}**", inline=False)
-                    
                     embed.add_field(
                         name=t('trade_completed', lang), 
                         value=t('trade_more_info', lang), 
@@ -2385,7 +2452,6 @@ async def process_trade_with_dm(ctx, code, dm_message, trades_amount):
                         value=f"Math", 
                         inline=False
                     )
-                    
                     # Adicionar log de saída resumido como footer
                     log_lines = stdout.splitlines()
                     if log_lines:
@@ -2393,10 +2459,8 @@ async def process_trade_with_dm(ctx, code, dm_message, trades_amount):
                         if important_lines:
                             summary = important_lines[-1]  # Última linha importante
                             embed.set_footer(text=summary)
-                    
                     # Send completion embed via DM
                     await dm_message.edit(content=None, embed=embed)
-                    
                     # Also send a simpler public confirmation (without the code)
                     public_embed = discord.Embed(
                         title=t('trade_success', lang),
@@ -2409,46 +2473,36 @@ async def process_trade_with_dm(ctx, code, dm_message, trades_amount):
                         inline=False
                     )
                     await ctx.send(embed=public_embed)
-                    
                     # Disparar evento de trade completado
                     bot.dispatch('trade_completed', ctx.author.id, code)
-                    
                 else:
                     code_info['status'] = 'failed'
-                    
+                    code_info['processing_time'] = processing_time
                     # Atualizar no MongoDB
                     if db.is_connected():
-                        db.update_active_trade_status(code, 'failed')
-                    
+                        db.update_active_trade_status(code, 'failed', processing_time)
                     # Criar embed com o erro
                     embed = discord.Embed(
                         title=t('trade_error', lang),
                         description=t('trade_error_desc', lang, {'code': code}),
                         color=0xff0000
                     )
-                    
                     # Adicionar detalhes do erro
                     error_lines = stderr.splitlines()
                     if error_lines:
                         error_message = error_lines[-1]  # Última linha de erro
                         embed.add_field(name="Erro", value=error_message, inline=False)
-                    
                     # Send error via DM
                     await dm_message.edit(content=None, embed=embed)
-                    
                     # Also notify about the error in public (without the code)
                     await ctx.send(t('trade_error_public', lang, {'mention': ctx.author.mention}))
-                    
             except Exception as e:
                 code_info['status'] = 'failed'
-                
                 # Atualizar no MongoDB
                 if db.is_connected():
                     db.update_active_trade_status(code, 'failed')
-                
                 # Send error via DM
                 await dm_message.edit(content=f"❌ Erro ao processar trade: {str(e)}")
-                
                 # Also notify about the error in public
                 await ctx.send(t('trade_error_public', lang, {'mention': ctx.author.mention}))
     except Exception as e:
@@ -2637,6 +2691,321 @@ async def resetuser_error(ctx, error):
             await log_error(f"Erro em comando resetuser: {error}")
     except Exception as e:
         await log_error(f"Erro ao tratar erro do comando resetuser: {e}")
+
+@bot.command(name='giveaway')
+@commands.has_permissions(administrator=True)
+async def giveaway_command(ctx, duration: int, winners: int, trades: int, role: discord.Role, *, prize: str):
+    """Comando para sorteio de trades com restrição de cargo. Uso: !giveaway <duração_min> <n_ganhadores> <qtd_trades> <role> <descrição_do_prêmio>"""
+    lang = get_user_language(ctx.author.id)
+    if duration < 1 or winners < 1 or trades < 1:
+        await ctx.send('A duração, o número de ganhadores e a quantidade de trades devem ser maiores que 0.')
+        return
+    
+    embed = discord.Embed(
+        title=t('giveaway_title', lang),
+        description=t('giveaway_desc', lang, {
+            'prize': prize,
+            'trades': trades,
+            'duration': duration,
+            'winners': winners
+        }) + f"\n\n{t('giveaway_role_required', lang, {'role': role.mention})}",
+        color=0x00bfff
+    )
+    embed.set_footer(text=t('giveaway_footer', lang, {'admin': ctx.author.display_name}))
+    message = await ctx.send(embed=embed)
+    await message.add_reaction('🎉')
+
+    await asyncio.sleep(duration * 60)
+
+    message = await ctx.channel.fetch_message(message.id)
+    users = set()
+    for reaction in message.reactions:
+        if str(reaction.emoji) == '🎉':
+            async for user in reaction.users():
+                if not user.bot and role in getattr(user, 'roles', []):
+                    users.add(user)
+    if not users:
+        await ctx.send(t('giveaway_no_eligible', lang))
+        return
+    if len(users) < winners:
+        winners = len(users)
+    ganhadores = random.sample(list(users), winners)
+    nomes = ', '.join(user.mention for user in ganhadores)
+    resultado = discord.Embed(
+        title=t('giveaway_end_title', lang),
+        description=t('giveaway_end_desc', lang, {
+            'winners': nomes,
+            'prize': prize,
+            'trades': trades
+        }),
+        color=0x00ff00
+    )
+    await ctx.send(embed=resultado)
+    # Adicionar trades para cada ganhador
+    for user in ganhadores:
+        # Atualizar em memória
+        if user.id not in user_trades:
+            user_trades[user.id] = 0
+        user_trades[user.id] += trades
+        # Atualizar no MongoDB
+        if db.is_connected():
+            db.increment_user_trades(user.id, trades)
+        # Avisar por DM
+        try:
+            await user.send(t('giveaway_dm', lang, {
+                'trades': trades,
+                'prize': prize,
+                'server': ctx.guild.name
+            }))
+        except Exception:
+            pass
+
+@bot.event
+async def on_raw_reaction_add(payload):
+    """Evento disparado quando uma reação é adicionada"""
+    try:
+        # Verificar se é uma reação de 🎉
+        if str(payload.emoji) != '🎉':
+            return
+
+        # Obter o canal e a mensagem
+        channel = bot.get_channel(payload.channel_id)
+        if not channel:
+            return
+
+        message = await channel.fetch_message(payload.message_id)
+        if not message:
+            return
+
+        # Verificar se é uma mensagem de sorteio
+        if not message.embeds or not message.embeds[0].title or 'SORTEIO DE TRADES' not in message.embeds[0].title:
+            return
+
+        # Obter o usuário
+        user = await bot.fetch_user(payload.user_id)
+        if user.bot:
+            return
+
+        # Obter o membro do servidor
+        member = channel.guild.get_member(user.id)
+        if not member:
+            return
+
+        # Extrair o cargo necessário da descrição do embed
+        embed = message.embeds[0]
+        role_mention = embed.description.split('Apenas membros com o cargo ')[1].split(' podem')[0]
+        role_id = int(role_mention.replace('<@&', '').replace('>', ''))
+
+        # Verificar se o usuário tem o cargo
+        role = channel.guild.get_role(role_id)
+        if not role or role not in member.roles:
+            # Remover a reação se o usuário não tiver o cargo
+            await message.remove_reaction(payload.emoji, member)
+            try:
+                # Tentar enviar DM para o usuário
+                await user.send(t('giveaway_no_role', get_user_language(user.id)))
+            except:
+                pass
+    except Exception as e:
+        await log_error(f"Erro no evento on_raw_reaction_add: {e}")
+
+@bot.command(name='deletegiveaway')
+@commands.has_permissions(administrator=True)
+async def deletegiveaway_command(ctx, message_id: int):
+    """Comando para deletar um sorteio ativo"""
+    lang = get_user_language(ctx.author.id)
+    
+    try:
+        # Buscar a mensagem do sorteio
+        try:
+            message = await ctx.channel.fetch_message(message_id)
+        except discord.NotFound:
+            await ctx.send(t('giveaway_not_found', lang))
+            return
+        except discord.Forbidden:
+            await ctx.send(t('giveaway_no_permission', lang))
+            return
+        
+        # Verificar se é uma mensagem de sorteio
+        if not message.embeds or not message.embeds[0].title or 'SORTEIO DE TRADES' not in message.embeds[0].title:
+            await ctx.send(t('giveaway_invalid_message', lang))
+            return
+        
+        # Deletar a mensagem do sorteio
+        await message.delete()
+        
+        # Enviar confirmação
+        await ctx.send(t('giveaway_deleted', lang))
+        
+    except Exception as e:
+        await log_error(f"Erro no comando deletegiveaway: {e}")
+        await ctx.send(t('command_error', lang))
+
+@bot.command(name='resetdice')
+@commands.has_permissions(administrator=True)
+async def resetdice_command(ctx, member: discord.Member):
+    """Comando para resetar o cooldown do dado de um usuário"""
+    lang = get_user_language(ctx.author.id)
+    try:
+        if not member:
+            await ctx.send(t('resetdice_no_member', lang))
+            return
+        if member.id in user_dice_cooldowns:
+            del user_dice_cooldowns[member.id]
+            if member.id in user_dice_reminders:
+                del user_dice_reminders[member.id]
+            if db.is_connected():
+                if hasattr(db, 'remove_dice_cooldown'):
+                    db.remove_dice_cooldown(member.id)
+            await ctx.send(t('resetdice_success', lang, {'user': member.display_name}))
+        else:
+            await ctx.send(t('resetdice_not_on_cooldown', lang, {'user': member.display_name}))
+    except Exception as e:
+        await log_error(f"Erro no comando resetdice: {e}")
+        await ctx.send(t('command_error', lang))
+
+# Dicionário para cooldown do dado
+user_dice_cooldowns = {}
+# Dicionário para lembretes de dado
+user_dice_reminders = {}
+
+class DiceReminderButton(discord.ui.Button):
+    def __init__(self, user_id, lang, remind_time):
+        super().__init__(
+            style=discord.ButtonStyle.primary,
+            label=t('dice_reminder_button', lang),
+            emoji="⏰"
+        )
+        self.user_id = user_id
+        self.lang = lang
+        self.remind_time = remind_time
+    async def callback(self, interaction):
+        try:
+            if interaction.user.id != self.user_id:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(t('not_your_button', self.lang), ephemeral=True)
+                else:
+                    await interaction.followup.send(t('not_your_button', self.lang), ephemeral=True)
+                return
+            current_time = datetime.datetime.now()
+            time_diff = (self.remind_time - current_time).total_seconds()
+            if time_diff <= 0:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(t('dice_already_available', self.lang), ephemeral=True)
+                else:
+                    await interaction.followup.send(t('dice_already_available', self.lang), ephemeral=True)
+                return
+            user_dice_reminders[self.user_id] = self.remind_time
+            if not interaction.response.is_done():
+                await interaction.response.send_message(t('dice_reminder_set', self.lang, {'minutes': int(time_diff / 60)}), ephemeral=True)
+            else:
+                await interaction.followup.send(t('dice_reminder_set', self.lang, {'minutes': int(time_diff / 60)}), ephemeral=True)
+            self.disabled = True
+            await interaction.message.edit(view=self.view)
+            bot.loop.create_task(send_dice_reminder(interaction.user, self.remind_time, self.lang))
+        except Exception as e:
+            await log_error(f"Erro no callback do botão de dado: {e}")
+            try:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(t('error_occurred', self.lang), ephemeral=True)
+                else:
+                    await interaction.followup.send(t('error_occurred', self.lang), ephemeral=True)
+            except:
+                pass
+
+class DiceReminderView(discord.ui.View):
+    def __init__(self, user_id, lang):
+        super().__init__(timeout=300)
+        current_time = datetime.datetime.now()
+        last_use = user_dice_cooldowns.get(user_id, current_time)
+        remind_time = last_use + datetime.timedelta(minutes=5)
+        self.add_item(DiceReminderButton(user_id, lang, remind_time))
+
+async def send_dice_reminder(user, remind_time, lang):
+    try:
+        current_time = datetime.datetime.now()
+        time_diff = (remind_time - current_time).total_seconds()
+        if time_diff > 0:
+            await asyncio.sleep(time_diff)
+        if user.id in user_dice_reminders and user_dice_reminders[user.id] == remind_time:
+            try:
+                await user.send(t('dice_reminder_message', lang))
+                del user_dice_reminders[user.id]
+            except Exception as e:
+                print(f"❌ Erro ao enviar lembrete de dado para {user.id}: {e}")
+    except Exception as e:
+        await log_error(f"Erro ao processar lembrete de dado: {e}")
+
+@bot.command(name='dice')
+@in_trade_channel()
+async def dice_command(ctx):
+    """Minigame de dados para ganhar trades"""
+    user_id = ctx.author.id
+    lang = get_user_language(user_id)
+    current_time = datetime.datetime.now()
+    # Cooldown
+    if user_id in user_dice_cooldowns:
+        last_use = user_dice_cooldowns[user_id]
+        time_diff = (current_time - last_use).total_seconds()
+        if time_diff < 300:
+            minutes_left = 5 - (time_diff / 60)
+            embed = discord.Embed(
+                title=t('dice_cooldown_title', lang),
+                description=t('dice_cooldown_desc', lang, {
+                    'minutes': int(minutes_left),
+                    'seconds': int((minutes_left % 1) * 60)
+                }),
+                color=0xff9900
+            )
+            view = DiceReminderView(user_id, lang)
+            await ctx.send(embed=embed, view=view)
+            return
+    # Jogar os dados
+    d1 = random.randint(1, 6)
+    d2 = random.randint(1, 6)
+    soma = d1 + d2
+    trades_won = 0
+    if soma == 12:
+        trades_won = 3
+    elif soma in [10, 11]:
+        trades_won = 2
+    elif 7 <= soma <= 9:
+        trades_won = 1
+    # Mensagem de resultado
+    if trades_won > 0:
+        if user_id not in user_trades:
+            user_trades[user_id] = 0
+        user_trades[user_id] += trades_won
+        if db.is_connected():
+            db.increment_user_trades(user_id, trades_won)
+            # Buscar valor atualizado do banco
+            user_trades[user_id] = db.get_user_trades(user_id)
+    embed = discord.Embed(
+        title=t('dice_result_title', lang),
+        description=t('dice_result_desc', lang, {'user': ctx.author.mention}),
+        color=0x00ccff if trades_won > 0 else 0xff5555
+    )
+    embed.add_field(
+        name=t('dice_roll', lang),
+        value=f"🎲 {d1} + 🎲 {d2} = **{soma}**",
+        inline=False
+    )
+    if trades_won == 5:
+        embed.add_field(name=t('dice_prize', lang), value=t('dice_win_5', lang), inline=False)
+    elif trades_won == 3:
+        embed.add_field(name=t('dice_prize', lang), value=t('dice_win_3', lang), inline=False)
+    elif trades_won == 1:
+        embed.add_field(name=t('dice_prize', lang), value=t('dice_win_1', lang), inline=False)
+    else:
+        embed.add_field(name=t('dice_prize', lang), value=t('dice_no_win', lang), inline=False)
+    if trades_won > 0:
+        embed.add_field(name=t('dice_total_trades', lang), value=t('dice_total_count', lang, {'count': user_trades[user_id]}), inline=False)
+    user_dice_cooldowns[user_id] = current_time
+    if db.is_connected():
+        if hasattr(db, 'set_last_dice_time'):
+            db.set_last_dice_time(user_id, current_time)
+    view = DiceReminderView(user_id, lang)
+    await ctx.send(embed=embed, view=view)
 
 # Executar o bot com o token do Discord
 if __name__ == "__main__":
