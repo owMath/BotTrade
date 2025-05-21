@@ -3049,13 +3049,14 @@ class BetVoteView(View):
 
 @bot.command(name='bet')
 @commands.has_permissions(administrator=True)
-async def bet_command(ctx, *args):
+async def bet_command(ctx, *, args):
     lang = get_user_language(ctx.author.id)
-    if len(args) < 3:
+    partes = [p.strip() for p in args.split(',')]
+    if len(partes) < 3:
         await ctx.send(t('bet_usage', lang))
         return
-    titulo = args[0]
-    opcoes = args[1:]
+    titulo = partes[0]
+    opcoes = partes[1:]
     if len(opcoes) < 2:
         await ctx.send(t('bet_need_options', lang))
         return
@@ -3070,7 +3071,7 @@ async def bet_command(ctx, *args):
         description=desc,
         color=0x00ff00
     )
-    embed.set_footer(text=f'ID da aposta: {bet_id} | Criado por {ctx.author.display_name}')
+    embed.set_footer(text=f'Bet ID: {bet_id} | Created by {ctx.author.display_name}')
     view = BetVoteView(bet_id, options, locked=False)
     await ctx.send(embed=embed, view=view)
 
