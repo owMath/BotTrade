@@ -46,6 +46,15 @@ TRANSLATIONS = {
         'help_givetrade': '!givetrade = dar trade para alguém.',
         'help_abort': '!abort = cancelar um code.',
 
+        'bet_vote_success': 'Voto registrado com sucesso!',
+        'bet_already_voted': 'Você já votou nesta opção.',
+        'bet_closed': 'A aposta não está aberta para votação.',
+        'bet_need_options': 'A aposta precisa de pelo menos 2 opções.',
+        'bet_usage': 'Use: !bet Título Opção1 Opção2 [Opção3 ...]',
+        'bet_not_found': 'Aposta com ID {id} não encontrada.',
+        'bet_locked': 'A aposta já está travada ou encerrada.',
+        'bet_already_ended': 'A aposta já foi encerrada.',
+
         # Giveaway
         'giveaway_title': '🎉 SORTEIO DE TRADES! 🎉',
         'giveaway_desc': 'Prêmio: **{prize}**\nQuantidade: **{trades} trades**\nClique em 🎉 para participar!\n\nDuração: **{duration}** minutos\nGanhadores: **{winners}**',
@@ -300,6 +309,15 @@ TRANSLATIONS = {
         'check_trade_timestamp': 'Last claim: {time}',
         'help_checktrademember': 'Checks how many trades a user has and shows information about their last daily claim.',
         
+        'bet_vote_success': 'Vote registered successfully!',
+        'bet_already_voted': 'You have already voted for this option.',
+        'bet_closed': 'The bet is not open for voting.',
+        'bet_need_options': 'The bet needs at least 2 options.',
+        'bet_usage': 'Usage: !bet Title Option1 Option2 [Option3 ...]',
+        'bet_not_found': 'Bet with ID {id} not found.',
+        'bet_locked': 'The bet is already locked or ended.',
+        'bet_already_ended': 'The bet has already ended.',
+
         # Giveaway
         'giveaway_title': '🎉 TRADES GIVEAWAY! 🎉',
         'giveaway_desc': 'Prize: **{prize}**\nAmount: **{trades} trades**\nClick 🎉 to participate!\n\nDuration: **{duration}** minutes\nWinners: **{winners}**',
@@ -545,6 +563,15 @@ TRANSLATIONS = {
         'check_trade_never_claimed': 'Nunca reclamó',
         'check_trade_timestamp': 'Último claim: {time}',
         'help_checktrademember': 'Verifica cuántos trades tiene un usuario y muestra información sobre su último claim diario.',
+
+        'bet_vote_success': '¡Voto registrado con éxito!',
+        'bet_already_voted': 'Ya has votado por esta opción.',
+        'bet_closed': 'La apuesta no está abierta para votar.',
+        'bet_need_options': 'La apuesta necesita al menos 2 opciones.',
+        'bet_usage': 'Uso: !bet Título Opción1 Opción2 [Opción3 ...]',
+        'bet_not_found': 'Apuesta con ID {id} no encontrada.',
+        'bet_locked': 'La apuesta ya está bloqueada o finalizada.',
+        'bet_already_ended': 'La apuesta ya ha finalizado.',
 
         # Giveaway
         'giveaway_title': '🎉 ¡SORTEO DE TRADES! 🎉',
@@ -970,6 +997,15 @@ TRANSLATIONS = {
     'check_trade_timestamp': 'Letzter Claim: {time}',
     'help_checktrademember': 'Überprüft die Anzahl der Trades eines Benutzers und zeigt Informationen über seinen letzten täglichen Claim an.',
 
+    'bet_vote_success': 'Stimme erfolgreich registriert!',
+    'bet_already_voted': 'Du hast bereits für diese Option abgestimmt.',
+    'bet_closed': 'Die Wette ist nicht zur Abstimmung geöffnet.',
+    'bet_need_options': 'Die Wette benötigt mindestens 2 Optionen.',
+    'bet_usage': 'Verwendung: !bet Titel Option1 Option2 [Option3 ...]',
+    'bet_not_found': 'Wette mit ID {id} nicht gefunden.',
+    'bet_locked': 'Die Wette ist bereits gesperrt oder beendet.',
+    'bet_already_ended': 'Die Wette wurde bereits beendet.',
+
     # Giveaway
     'giveaway_title': '🎉 TRADES-GEWINNSPIEL! 🎉',
     'giveaway_desc': 'Preis: **{prize}**\nAnzahl: **{trades} Trades**\nKlicke auf 🎉 um teilzunehmen!\n\nDauer: **{duration}** Minuten\nGewinner: **{winners}**',
@@ -1148,6 +1184,15 @@ TRANSLATIONS = {
     'check_trade_timestamp': 'Ultimo claim: {time}',
     'help_checktrademember': 'Verifica il numero di trades di un utente e mostra informazioni sul suo ultimo claim giornaliero.',
 
+    'bet_vote_success': 'Voto registrato con successo!',
+    'bet_already_voted': 'Hai già votato per questa opzione.',
+    'bet_closed': 'La scommessa non è aperta alle votazioni.',
+    'bet_need_options': 'La scommessa necessita di almeno 2 opzioni.',
+    'bet_usage': 'Uso: !bet Titolo Opzione1 Opzione2 [Opzione3 ...]',
+    'bet_not_found': 'Scommessa con ID {id} non trovata.',
+    'bet_locked': 'La scommessa è già bloccata o terminata.',
+    'bet_already_ended': 'La scommessa è già terminata.',
+
     # Giveaway
     'giveaway_title': '🎉 GIVEAWAY DI TRADES! 🎉',
     'giveaway_desc': 'Premio: **{prize}**\nQuantità: **{trades} trades**\nClicca su 🎉 per partecipare!\n\nDurata: **{duration}** minuti\nVincitori: **{winners}**',
@@ -1325,6 +1370,15 @@ TRANSLATIONS = {
     'check_trade_never_claimed': 'Nigdy nie odebrał',
     'check_trade_timestamp': 'Ostatnie odebranie: {time}',
     'help_checktrademember': 'Sprawdza liczbę wymian użytkownika i pokazuje informacje o jego ostatnim dziennym odebraniu.',
+
+    'bet_vote_success': 'Głos został pomyślnie zarejestrowany!',
+    'bet_already_voted': 'Już zagłosowałeś na tę opcję.',
+    'bet_closed': 'Zakład nie jest otwarty do głosowania.',
+    'bet_need_options': 'Zakład wymaga co najmniej 2 opcji.',
+    'bet_usage': 'Użycie: !bet Tytuł Opcja1 Opcja2 [Opcja3 ...]',
+    'bet_not_found': 'Zakład o ID {id} nie został znaleziony.',
+    'bet_locked': 'Zakład jest już zablokowany lub zakończony.',
+    'bet_already_ended': 'Zakład został już zakończony.',
 
     # Giveaway
     'giveaway_title': '🎉 LOSOWANIE TRADEÓW! 🎉',

@@ -36,6 +36,8 @@ class Database:
             self.guild_languages_collection = self.db['guild_languages']
             self.slot_cooldowns_collection = self.db['slot_cooldowns'] # Coleção para cooldowns de slot
             self.box_cooldowns_collection = self.db['box_cooldowns'] # Nova coleção para cooldowns de box
+            self.bets_collection = self.db['bets']
+            self.bets_collection.create_index('bet_id', unique=True)
             
             # Criar índices para otimizar consultas
             self.user_trades_collection.create_index('user_id', unique=True)
@@ -942,4 +944,82 @@ class Database:
             print(f"❌ Erro ao atualizar box times em lote: {e}")
             return False
     
+    # ===============================================
+    # Operações para Apostas (Bets)
+    # ===============================================
+    def create_bet(self, bet_id, title, options, creator_id):
+        """Cria uma nova aposta."""
+        if not self.is_connected():
+            return False
+        try:
+            bet_doc = {
+                'bet_id': bet_id,
+                'title': title,
+                'options': options,  # Ex: [{'id': 1, 'text': 'Opção 1', 'votes': []}, ...]
+                'creator_id': creator_id,
+                'status': 'open',  # open, locked, ended
+                'created_at': datetime.datetime.now(),
+                'locked_at': None,
+                'ended_at': None,
+                'winner_option': None
+            }
+            self.bets_collection.insert_one(bet_doc)
+            return True
+        except Exception as e:
+            print(f"❌ Erro ao criar aposta: {e}")
+            return False
+
+    def get_bet(self, bet_id):
+        """Busca uma aposta pelo ID."""
+        if not self.is_connected():
+            return None
+        try:
+            return self.bets_collection.find_one({'bet_id': bet_id})
+        except Exception as e:
+            print(f"❌ Erro ao buscar aposta: {e}")
+            return None
+
+    def add_vote(self, bet_id, option_id, user_id):
+        """Adiciona um voto de um usuário em uma opção."""
+        if not self.is_connected():
+            return False
+        try:
+            bet = self.get_bet(bet_id)
+            if not bet or bet['status'] != 'open':
+                return False
+            # Remover voto anterior do usuário
+            for opt in bet['options']:
+                if user_id in opt['votes']:
+                    opt['votes'].remove(user_id)
+            # Adicionar voto na nova opção
+            for opt in bet['options']:
+                if opt['id'] == option_id:
+                    opt['votes'].append(user_id)
+            self.bets_collection.update_one({'bet_id': bet_id}, {'$set': {'options': bet['options']}})
+            return True
+        except Exception as e:
+            print(f"❌ Erro ao adicionar voto: {e}")
+            return False
+
+    def lock_bet(self, bet_id):
+        """Trava a aposta (ninguém mais pode votar)."""
+        if not self.is_connected():
+            return False
+        try:
+            self.bets_collection.update_one({'bet_id': bet_id}, {'$set': {'status': 'locked', 'locked_at': datetime.datetime.now()}})
+            return True
+        except Exception as e:
+            print(f"❌ Erro ao travar aposta: {e}")
+            return False
+
+    def end_bet(self, bet_id, winner_option):
+        """Encerra a aposta e define a opção vencedora."""
+        if not self.is_connected():
+            return False
+        try:
+            self.bets_collection.update_one({'bet_id': bet_id}, {'$set': {'status': 'ended', 'ended_at': datetime.datetime.now(), 'winner_option': winner_option}})
+            return True
+        except Exception as e:
+            print(f"❌ Erro ao encerrar aposta: {e}")
+            return False
         

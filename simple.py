@@ -10,6 +10,8 @@ from database import Database  # Importar a classe de banco de dados
 from translations import t, get_user_language as get_lang # Importar funções de tradução
 from keep_alive import keep_alive
 import time
+from discord.ui import View, Button
+import uuid
 
 async def log_error(message, exception=None):
     print(f"[ERRO] {message}")
@@ -2626,7 +2628,7 @@ async def on_ready():
     """Evento disparado quando o bot está pronto"""
     try:
         print(f'Bot conectado como {bot.user.name}')
-        activity = discord.Activity(type=discord.ActivityType.watching, name="trades | !help")
+        activity = discord.Activity(type=discord.ActivityType.watching, name="Created by Math")
         await bot.change_presence(activity=activity)
 
         await log_error("Bot iniciado com sucesso")
@@ -2639,6 +2641,16 @@ async def on_ready():
         
         # Iniciar tarefa de limpeza de trades expirados
         bot.loop.create_task(cleanup_expired_trades())
+        # --- REGISTRAR VIEWS PERSISTENTES DAS APOSTAS ---
+        if db.is_connected():
+            try:
+                bets = db.bets_collection.find({'status': {'$in': ['open', 'locked']}})
+                for bet in bets:
+                    view = BetVoteView(bet['bet_id'], bet['options'], bet['status'] != 'open')
+                    bot.add_view(view)
+                print(f"Views de apostas persistentes registradas: {bets.count()} bets.")
+            except Exception as e:
+                print(f"Erro ao registrar views persistentes: {e}")
     except Exception as e:
         await log_error(f"Erro no evento on_ready: {e}")
 
@@ -3005,6 +3017,116 @@ async def dice_command(ctx):
         if hasattr(db, 'set_last_dice_time'):
             db.set_last_dice_time(user_id, current_time)
     view = DiceReminderView(user_id, lang)
+    await ctx.send(embed=embed, view=view)
+
+class BetVoteView(View):
+    def __init__(self, bet_id, options, locked):
+        super().__init__(timeout=None)
+        self.bet_id = bet_id
+        for opt in options:
+            btn = Button(label=opt['text'], style=discord.ButtonStyle.primary, custom_id=f"bet_{bet_id}_{opt['id']}")
+            btn.disabled = locked
+            btn.callback = self.make_callback(opt['id'])
+            self.add_item(btn)
+
+    def make_callback(self, option_id):
+        async def callback(interaction):
+            user_id = interaction.user.id
+            lang = get_user_language(user_id)
+            bet = db.get_bet(self.bet_id)
+            if not bet or bet['status'] != 'open':
+                await interaction.response.send_message(t('bet_closed', lang), ephemeral=True)
+                return
+            # Checar se já votou
+            for opt in bet['options']:
+                if user_id in opt['votes']:
+                    if opt['id'] == option_id:
+                        await interaction.response.send_message(t('bet_already_voted', lang), ephemeral=True)
+                        return
+            db.add_vote(self.bet_id, option_id, user_id)
+            await interaction.response.send_message(t('bet_vote_success', lang), ephemeral=True)
+        return callback
+
+@bot.command(name='bet')
+@commands.has_permissions(administrator=True)
+async def bet_command(ctx, *args):
+    lang = get_user_language(ctx.author.id)
+    if len(args) < 3:
+        await ctx.send(t('bet_usage', lang))
+        return
+    titulo = args[0]
+    opcoes = args[1:]
+    if len(opcoes) < 2:
+        await ctx.send(t('bet_need_options', lang))
+        return
+    bet_id = str(uuid.uuid4())[:8]
+    options = [
+        {'id': i+1, 'text': op, 'votes': []} for i, op in enumerate(opcoes)
+    ]
+    db.create_bet(bet_id, titulo, options, ctx.author.id)
+    desc = 'Join the Bet!\n\noptions\n' + '\n'.join([f'{i+1}. {op}' for i, op in enumerate(opcoes)]) + '\n\nReward: 3 trades'
+    embed = discord.Embed(
+        title=f'🎲 Bet: {titulo}',
+        description=desc,
+        color=0x00ff00
+    )
+    embed.set_footer(text=f'ID da aposta: {bet_id} | Criado por {ctx.author.display_name}')
+    view = BetVoteView(bet_id, options, locked=False)
+    await ctx.send(embed=embed, view=view)
+
+@bot.command(name='lockbet')
+@commands.has_permissions(administrator=True)
+async def lockbet_command(ctx, bet_id: str):
+    lang = get_user_language(ctx.author.id)
+    bet = db.get_bet(bet_id)
+    if not bet:
+        await ctx.send(t('bet_not_found', lang, {'id': bet_id}))
+        return
+    if bet['status'] != 'open':
+        await ctx.send(t('bet_locked', lang))
+        return
+    db.lock_bet(bet_id)
+    embed = discord.Embed(
+        title=f'🔒 Aposta Travada: {bet["title"]}',
+        description='A aposta foi travada. Aguarde o encerramento!\n\noptions',
+        color=0xffa500
+    )
+    for opt in bet['options']:
+        embed.add_field(name=f"{opt['id']}. {opt['text']}", value=f"{len(opt['votes'])} votos", inline=False)
+    embed.set_footer(text=f'ID da aposta: {bet_id}')
+    view = BetVoteView(bet_id, bet['options'], locked=True)
+    await ctx.send(embed=embed, view=view)
+
+@bot.command(name='endbet')
+@commands.has_permissions(administrator=True)
+async def endbet_command(ctx, bet_id: str, opcao_vencedora: int):
+    lang = get_user_language(ctx.author.id)
+    bet = db.get_bet(bet_id)
+    if not bet:
+        await ctx.send(t('bet_not_found', lang, {'id': bet_id}))
+        return
+    if bet['status'] == 'ended':
+        await ctx.send(t('bet_already_ended', lang))
+        return
+    db.end_bet(bet_id, opcao_vencedora)
+    vencedores = []
+    for opt in bet['options']:
+        if opt['id'] == opcao_vencedora:
+            vencedores = opt['votes']
+            break
+    for user_id in vencedores:
+        db.increment_user_trades(user_id, 3)
+    embed = discord.Embed(
+        title=f'🏆 Bet closed: {bet["title"]}',
+        description=f'Bet closed! Winning option: {opcao_vencedora}\n\noptions',
+        color=0x00ff00
+    )
+    for opt in bet['options']:
+        destaque = ' (vencedora)' if opt['id'] == opcao_vencedora else ''
+        embed.add_field(name=f"{opt['id']}. {opt['text']}{destaque}", value=f"{len(opt['votes'])} votos", inline=False)
+    embed.add_field(name='Winners', value='\n'.join([f'<@{uid}>' for uid in vencedores]) if vencedores else 'Nobody got it right.', inline=False)
+    embed.set_footer(text=f'ID da aposta: {bet_id}')
+    view = BetVoteView(bet_id, bet['options'], locked=True)
     await ctx.send(embed=embed, view=view)
 
 # Executar o bot com o token do Discord
