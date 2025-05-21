@@ -55,8 +55,8 @@ intents.members = True  # Necessário para obter informações de usuários
 bot = commands.Bot(command_prefix='!', intents=intents, help_command=None)
 
 # Configurações do Giveaway
-GIVEAWAY_ROLE_ID = 1374859123216089180
-GIVEAWAY_CHANNEL_ID = 1361867834556416163
+GIVEAWAY_ROLE_ID = 1154488434199634010
+GIVEAWAY_CHANNEL_ID = 990726905030397984
 ADMIN_ID = 879910043418501132  # ID do administrador master
 
 # Dicionários para armazenar informações (serão sincronizados com MongoDB)
