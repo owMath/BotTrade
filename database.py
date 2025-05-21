@@ -38,6 +38,7 @@ class Database:
             self.box_cooldowns_collection = self.db['box_cooldowns'] # Nova coleção para cooldowns de box
             self.bets_collection = self.db['bets']
             self.bets_collection.create_index('bet_id', unique=True)
+            self.giveaways_collection = self.db['giveaways']
             
             # Criar índices para otimizar consultas
             self.user_trades_collection.create_index('user_id', unique=True)
@@ -1022,4 +1023,16 @@ class Database:
         except Exception as e:
             print(f"❌ Erro ao encerrar aposta: {e}")
             return False
+
+    def save_giveaway(self, giveaway_id, data):
+        self.giveaways_collection.update_one({'_id': giveaway_id}, {'$set': data}, upsert=True)
+
+    def update_giveaway_participants(self, giveaway_id, participants):
+        self.giveaways_collection.update_one({'_id': giveaway_id}, {'$set': {'participants': participants}})
+
+    def get_all_active_giveaways(self):
+        return list(self.giveaways_collection.find())
+
+    def remove_giveaway(self, giveaway_id):
+        self.giveaways_collection.delete_one({'_id': giveaway_id})
         

@@ -12,6 +12,7 @@ from keep_alive import keep_alive
 import time
 from discord.ui import View, Button
 import uuid
+from discord.ext.commands import MissingPermissions
 
 async def log_error(message, exception=None):
     print(f"[ERRO] {message}")
@@ -53,6 +54,11 @@ intents.message_content = True
 intents.members = True  # Necessário para obter informações de usuários
 bot = commands.Bot(command_prefix='!', intents=intents, help_command=None)
 
+# Configurações do Giveaway
+GIVEAWAY_ROLE_ID = 1374859123216089180
+GIVEAWAY_CHANNEL_ID = 1361867834556416163
+ADMIN_ID = 879910043418501132  # ID do administrador master
+
 # Dicionários para armazenar informações (serão sincronizados com MongoDB)
 active_trades = {}
 user_trades = {}
@@ -74,7 +80,61 @@ box_reminders = {}
 MAX_CONCURRENT_TRADES = 2
 trade_semaphore = asyncio.Semaphore(MAX_CONCURRENT_TRADES)
 
-ADMIN_ID = 879910043418501132  # ID do administrador master
+# Dicionário para cooldown do dado
+user_dice_cooldowns = {}
+# Dicionário para lembretes de dado
+user_dice_reminders = {}
+
+# Dicionário para armazenar giveaways ativos
+active_giveaways = {}
+
+class GiveawayView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="Participar", style=discord.ButtonStyle.primary, emoji="🎉", custom_id="giveaway_join")
+    async def join_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        lang = get_user_language(interaction.user.id)
+        try:
+            message_id = interaction.message.id
+            # Buscar o giveaway_id pelo message_id
+            giveaway_id = None
+            for gid, g in active_giveaways.items():
+                if g['message_id'] == message_id:
+                    giveaway_id = gid
+                    break
+            if not giveaway_id or giveaway_id not in active_giveaways:
+                await interaction.response.send_message(t('giveaway_already_ended', lang), ephemeral=True)
+                return
+            if interaction.user.id in active_giveaways[giveaway_id]['participants']:
+                await interaction.response.send_message(t('giveaway_already_joined', lang), ephemeral=True)
+                return
+            active_giveaways[giveaway_id]['participants'].append(interaction.user.id)
+            if db.is_connected():
+                db.update_giveaway_participants(giveaway_id, active_giveaways[giveaway_id]['participants'])
+            # Atualizar embed com lista de participantes
+            participantes = active_giveaways[giveaway_id]['participants']
+            participantes_mencoes = []
+            guild = interaction.guild or (interaction.client.get_guild(interaction.message.guild.id) if interaction.message.guild else None)
+            if guild:
+                for pid in participantes:
+                    member = guild.get_member(pid)
+                    if member:
+                        participantes_mencoes.append(member.mention)
+                    else:
+                        participantes_mencoes.append(f"<@{pid}>")
+            else:
+                participantes_mencoes = [f"<@{pid}>" for pid in participantes]
+            embed = interaction.message.embeds[0].copy()
+            embed.clear_fields()
+            # Recriar campos principais
+            embed.description = embed.description.split("\n\nClique no botão abaixo")[0] + "\n\nClique no botão abaixo para participar!"
+            embed.add_field(name="Participantes", value="\n".join(participantes_mencoes) if participantes_mencoes else "Ninguém participou ainda.", inline=False)
+            await interaction.message.edit(embed=embed, view=self)
+            await interaction.response.send_message(t('giveaway_join_success', lang), ephemeral=True)
+        except Exception as e:
+            await log_error(f"Erro no botão de giveaway: {e}")
+            await interaction.response.send_message(t('command_error', lang), ephemeral=True)
 
 def generate_code(length=6):
     """Gera um código aleatório para o trade"""
@@ -2630,16 +2690,9 @@ async def on_ready():
         print(f'Bot conectado como {bot.user.name}')
         activity = discord.Activity(type=discord.ActivityType.watching, name="Created by Math")
         await bot.change_presence(activity=activity)
-
         await log_error("Bot iniciado com sucesso")
-        
-        # Carregar dados do MongoDB
         load_data_from_mongodb()
-        
-        # Iniciar tarefa de sincronização com MongoDB
         bot.loop.create_task(sync_data_to_mongodb())
-        
-        # Iniciar tarefa de limpeza de trades expirados
         bot.loop.create_task(cleanup_expired_trades())
         # --- REGISTRAR VIEWS PERSISTENTES DAS APOSTAS ---
         if db.is_connected():
@@ -2651,6 +2704,32 @@ async def on_ready():
                 print(f"Views de apostas persistentes registradas: {bets.count()} bets.")
             except Exception as e:
                 print(f"Erro ao registrar views persistentes: {e}")
+            # --- REGISTRAR VIEWS PERSISTENTES DOS GIVEAWAYS ---
+            try:
+                bot.add_view(GiveawayView())  # Registrar view persistente para todos os sorteios
+                giveaways = db.get_all_active_giveaways()
+                for g in giveaways:
+                    giveaway_id = g['_id']
+                    end_time = g['end_time']
+                    if isinstance(end_time, str):
+                        try:
+                            end_time = datetime.datetime.fromisoformat(end_time)
+                        except Exception:
+                            end_time = datetime.datetime.now()
+                    active_giveaways[giveaway_id] = {
+                        'message_id': g['message_id'],
+                        'prize': g['prize'],
+                        'winners': g['winners'],
+                        'end_time': end_time,
+                        'participants': g.get('participants', [])
+                    }
+                    now = datetime.datetime.now()
+                    if end_time > now:
+                        seconds_left = (end_time - now).total_seconds()
+                        bot.loop.create_task(asyncio.sleep(seconds_left))
+                        bot.loop.create_task(end_giveaway(giveaway_id))
+            except Exception as e:
+                print(f"Erro ao restaurar giveaways persistentes: {e}")
     except Exception as e:
         await log_error(f"Erro no evento on_ready: {e}")
 
@@ -2706,71 +2785,49 @@ async def resetuser_error(ctx, error):
 
 @bot.command(name='giveaway')
 @commands.has_permissions(administrator=True)
-async def giveaway_command(ctx, duration: int, winners: int, trades: int, role: discord.Role, *, prize: str):
-    """Comando para sorteio de trades com restrição de cargo. Uso: !giveaway <duração_min> <n_ganhadores> <qtd_trades> <role> <descrição_do_prêmio>"""
+async def giveaway_command(ctx, duration: int, winners: int, *, prize: str):
     lang = get_user_language(ctx.author.id)
-    if duration < 1 or winners < 1 or trades < 1:
-        await ctx.send('A duração, o número de ganhadores e a quantidade de trades devem ser maiores que 0.')
+    if ctx.channel.id != GIVEAWAY_CHANNEL_ID:
+        await ctx.send(t('giveaway_only_channel', lang, {'channel_id': GIVEAWAY_CHANNEL_ID}))
         return
-    
+    if not any(role.id == GIVEAWAY_ROLE_ID for role in ctx.author.roles):
+        await ctx.send(t('giveaway_no_permission', lang))
+        return
+    giveaway_id = str(uuid.uuid4())
+    end_time = datetime.datetime.now() + datetime.timedelta(minutes=duration)
     embed = discord.Embed(
-        title=t('giveaway_title', lang),
-        description=t('giveaway_desc', lang, {
+        title=t('giveaway_new_title', lang),
+        description=t('giveaway_new_desc', lang, {
             'prize': prize,
-            'trades': trades,
+            'winners': winners,
             'duration': duration,
-            'winners': winners
-        }) + f"\n\n{t('giveaway_role_required', lang, {'role': role.mention})}",
-        color=0x00bfff
-    )
-    embed.set_footer(text=t('giveaway_footer', lang, {'admin': ctx.author.display_name}))
-    message = await ctx.send(embed=embed)
-    await message.add_reaction('🎉')
-
-    await asyncio.sleep(duration * 60)
-
-    message = await ctx.channel.fetch_message(message.id)
-    users = set()
-    for reaction in message.reactions:
-        if str(reaction.emoji) == '🎉':
-            async for user in reaction.users():
-                if not user.bot and role in getattr(user, 'roles', []):
-                    users.add(user)
-    if not users:
-        await ctx.send(t('giveaway_no_eligible', lang))
-        return
-    if len(users) < winners:
-        winners = len(users)
-    ganhadores = random.sample(list(users), winners)
-    nomes = ', '.join(user.mention for user in ganhadores)
-    resultado = discord.Embed(
-        title=t('giveaway_end_title', lang),
-        description=t('giveaway_end_desc', lang, {
-            'winners': nomes,
-            'prize': prize,
-            'trades': trades
+            'description': ''
         }),
-        color=0x00ff00
+        color=discord.Color.blue()
     )
-    await ctx.send(embed=resultado)
-    # Adicionar trades para cada ganhador
-    for user in ganhadores:
-        # Atualizar em memória
-        if user.id not in user_trades:
-            user_trades[user.id] = 0
-        user_trades[user.id] += trades
-        # Atualizar no MongoDB
-        if db.is_connected():
-            db.increment_user_trades(user.id, trades)
-        # Avisar por DM
-        try:
-            await user.send(t('giveaway_dm', lang, {
-                'trades': trades,
-                'prize': prize,
-                'server': ctx.guild.name
-            }))
-        except Exception:
-            pass
+    embed.set_footer(text=t('giveaway_footer_id', lang, {'id': giveaway_id}))
+    view = GiveawayView()
+    message = await ctx.send(embed=embed, view=view)
+    active_giveaways[giveaway_id] = {
+        'message_id': message.id,
+        'prize': prize,
+        'winners': winners,
+        'end_time': end_time,
+        'participants': []
+    }
+    # Salvar no banco
+    if db.is_connected():
+        db.save_giveaway(giveaway_id, {
+            '_id': giveaway_id,
+            'message_id': message.id,
+            'prize': prize,
+            'winners': winners,
+            'end_time': end_time,
+            'participants': [],
+            'channel_id': ctx.channel.id
+        })
+    await asyncio.sleep(duration * 60)
+    await end_giveaway(giveaway_id)
 
 @bot.event
 async def on_raw_reaction_add(payload):
@@ -2823,35 +2880,25 @@ async def on_raw_reaction_add(payload):
 
 @bot.command(name='deletegiveaway')
 @commands.has_permissions(administrator=True)
-async def deletegiveaway_command(ctx, message_id: int):
-    """Comando para deletar um sorteio ativo"""
+async def deletegiveaway_command(ctx, giveaway_id: str):
     lang = get_user_language(ctx.author.id)
-    
+    if ctx.author.id != ADMIN_ID:
+        await ctx.send(t('admin_only', lang))
+        return
+    if giveaway_id not in active_giveaways:
+        await ctx.send(t('giveaway_not_found', lang))
+        return
+    giveaway = active_giveaways[giveaway_id]
+    channel = bot.get_channel(GIVEAWAY_CHANNEL_ID)
     try:
-        # Buscar a mensagem do sorteio
-        try:
-            message = await ctx.channel.fetch_message(message_id)
-        except discord.NotFound:
-            await ctx.send(t('giveaway_not_found', lang))
-            return
-        except discord.Forbidden:
-            await ctx.send(t('giveaway_no_permission', lang))
-            return
-        
-        # Verificar se é uma mensagem de sorteio
-        if not message.embeds or not message.embeds[0].title or 'SORTEIO DE TRADES' not in message.embeds[0].title:
-            await ctx.send(t('giveaway_invalid_message', lang))
-            return
-        
-        # Deletar a mensagem do sorteio
+        message = await channel.fetch_message(giveaway['message_id'])
         await message.delete()
-        
-        # Enviar confirmação
-        await ctx.send(t('giveaway_deleted', lang))
-        
-    except Exception as e:
-        await log_error(f"Erro no comando deletegiveaway: {e}")
-        await ctx.send(t('command_error', lang))
+    except:
+        pass
+    del active_giveaways[giveaway_id]
+    if db.is_connected():
+        db.remove_giveaway(giveaway_id)
+    await ctx.send(t('giveaway_deleted', lang))
 
 @bot.command(name='resetdice')
 @commands.has_permissions(administrator=True)
@@ -3130,6 +3177,103 @@ async def endbet_command(ctx, bet_id: str, opcao_vencedora: int):
     view = BetVoteView(bet_id, bet['options'], locked=True)
     await ctx.send(embed=embed, view=view)
 
+async def end_giveaway(giveaway_id):
+    if giveaway_id not in active_giveaways:
+        return
+    giveaway = active_giveaways[giveaway_id]
+    channel = bot.get_channel(GIVEAWAY_CHANNEL_ID)
+    if not channel:
+        return
+    message = await channel.fetch_message(giveaway['message_id'])
+    if not message:
+        return
+    lang = get_user_language(message.guild.owner_id) if message.guild else 'pt'
+    participants = giveaway['participants']
+    if not participants:
+        embed = discord.Embed(
+            title=t('giveaway_ended_title', lang),
+            description=t('giveaway_ended_no_participants', lang),
+            color=discord.Color.red()
+        )
+        await message.edit(embed=embed, view=None)
+        del active_giveaways[giveaway_id]
+        if db.is_connected():
+            db.remove_giveaway(giveaway_id)
+        return
+    winners = random.sample(participants, min(giveaway['winners'], len(participants)))
+    winners_mentions = [f"<@{winner_id}>" for winner_id in winners]
+    prize_text = giveaway['prize']
+    for winner_id in winners:
+        if winner_id not in user_trades:
+            user_trades[winner_id] = 0
+        try:
+            prize_amount = int(''.join(filter(str.isdigit, prize_text)))
+            user_trades[winner_id] += prize_amount
+            if db.is_connected():
+                db.increment_user_trades(winner_id, prize_amount)
+        except:
+            pass
+        # Enviar mensagem privada para o ganhador
+        try:
+            user = await bot.fetch_user(winner_id)
+            await user.send(t('giveaway_dm', lang, {
+                'trades': prize_amount if 'prize_amount' in locals() else prize_text,
+                'prize': prize_text,
+                'server': message.guild.name if message.guild else ''
+            }))
+        except Exception as e:
+            print(f"Não foi possível enviar DM para o ganhador {winner_id}: {e}")
+    embed = discord.Embed(
+        title=t('giveaway_ended_title', lang),
+        description=t('giveaway_ended_desc', lang, {
+            'prize': prize_text,
+            'winners': ', '.join(winners_mentions)
+        }),
+        color=discord.Color.green()
+    )
+    await message.edit(embed=embed, view=None)
+    del active_giveaways[giveaway_id]
+    if db.is_connected():
+        db.remove_giveaway(giveaway_id)
+
+@bot.command(name='forcegiveaway')
+async def forcegiveaway_command(ctx, giveaway_id: str):
+    lang = get_user_language(ctx.author.id)
+    if ctx.author.id != ADMIN_ID:
+        await ctx.send(t('admin_only', lang))
+        return
+    if giveaway_id not in active_giveaways:
+        await ctx.send(t('giveaway_not_found', lang))
+        return
+    await end_giveaway(giveaway_id)
+    await ctx.send(t('giveaway_force_success', lang))
+
+@bot.command(name='removetrade')
+@commands.has_permissions(administrator=True)
+async def removetrade_command(ctx, user_id: int, amount: int):
+    """Remove uma quantidade de trades de um usuário pelo ID (apenas admin)."""
+    # Verificar se é o admin principal
+    if ctx.author.id != ADMIN_ID:
+        await ctx.send("Apenas o administrador principal pode remover trades!")
+        return
+
+    # Verificar se o amount é válido
+    if amount < 1:
+        await ctx.send("A quantidade deve ser maior que zero.")
+        return
+
+    # Verificar se o usuário existe no dicionário
+    if user_id not in user_trades or user_trades[user_id] < amount:
+        await ctx.send("Usuário não possui trades suficientes ou não encontrado.")
+        return
+
+    # Remover trades
+    user_trades[user_id] -= amount
+    if db.is_connected():
+        db.decrement_user_trades(user_id, amount)
+
+    await ctx.send(f"Removido {amount} trade(s) do usuário com ID {user_id}. Agora ele possui {user_trades[user_id]} trades.")
+
 # Executar o bot com o token do Discord
 if __name__ == "__main__":
     if not TOKEN:
@@ -3144,3 +3288,14 @@ if __name__ == "__main__":
     print(f"🌐 Idioma padrão do bot: {DEFAULT_LANGUAGE}")
     keep_alive()
     bot.run(TOKEN)
+
+@bot.event
+async def on_command_error(ctx, error):
+    lang = get_user_language(ctx.author.id)
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send(t('admin_only', lang))
+    elif isinstance(error, commands.CheckFailure):
+        await ctx.send(t('admin_only', lang))
+    else:
+        await log_error(f"Erro em comando: {error}")
+        await ctx.send(t('command_error', lang))
