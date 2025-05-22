@@ -2784,7 +2784,6 @@ async def resetuser_error(ctx, error):
         await log_error(f"Erro ao tratar erro do comando resetuser: {e}")
 
 @bot.command(name='giveaway')
-@commands.has_permissions(administrator=True)
 async def giveaway_command(ctx, duration: int, winners: int, *, prize: str):
     lang = get_user_language(ctx.author.id)
     if ctx.channel.id != GIVEAWAY_CHANNEL_ID:
