@@ -56,7 +56,7 @@ bot = commands.Bot(command_prefix='!', intents=intents, help_command=None)
 
 # Configurações do Giveaway
 GIVEAWAY_ROLE_ID = 1154488434199634010
-GIVEAWAY_CHANNEL_ID = 990726905030397984
+GIVEAWAY_CHANNEL_IDS = [990726905030397984, 1376186354123407532, 1376186390965915748]  # Lista de IDs dos canais permitidos para giveaway
 ADMIN_ID = 879910043418501132  # ID do administrador master
 
 # Dicionários para armazenar informações (serão sincronizados com MongoDB)
@@ -2786,8 +2786,9 @@ async def resetuser_error(ctx, error):
 @bot.command(name='giveaway')
 async def giveaway_command(ctx, duration: int, winners: int, *, prize: str):
     lang = get_user_language(ctx.author.id)
-    if ctx.channel.id != GIVEAWAY_CHANNEL_ID:
-        await ctx.send(t('giveaway_only_channel', lang, {'channel_id': GIVEAWAY_CHANNEL_ID}))
+    if ctx.channel.id not in GIVEAWAY_CHANNEL_IDS:
+        channel_mentions = [f"<#{channel_id}>" for channel_id in GIVEAWAY_CHANNEL_IDS]
+        await ctx.send(t('giveaway_only_channel', lang, {'channels': ', '.join(channel_mentions)}))
         return
     if not any(role.id == GIVEAWAY_ROLE_ID for role in ctx.author.roles):
         await ctx.send(t('giveaway_no_permission', lang))
@@ -3180,7 +3181,12 @@ async def end_giveaway(giveaway_id):
     if giveaway_id not in active_giveaways:
         return
     giveaway = active_giveaways[giveaway_id]
-    channel = bot.get_channel(GIVEAWAY_CHANNEL_ID)
+    channel = None
+    for channel_id in GIVEAWAY_CHANNEL_IDS:
+        temp_channel = bot.get_channel(channel_id)
+        if temp_channel:
+            channel = temp_channel
+            break
     if not channel:
         return
     message = await channel.fetch_message(giveaway['message_id'])
