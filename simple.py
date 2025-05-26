@@ -2793,41 +2793,52 @@ async def giveaway_command(ctx, duration: int, winners: int, *, prize: str):
     if not any(role.id == GIVEAWAY_ROLE_ID for role in ctx.author.roles):
         await ctx.send(t('giveaway_no_permission', lang))
         return
-    giveaway_id = str(uuid.uuid4())
-    end_time = datetime.datetime.now() + datetime.timedelta(minutes=duration)
-    embed = discord.Embed(
-        title=t('giveaway_new_title', lang),
-        description=t('giveaway_new_desc', lang, {
-            'prize': prize,
-            'winners': winners,
-            'duration': duration,
-            'description': ''
-        }),
-        color=discord.Color.blue()
-    )
-    embed.set_footer(text=t('giveaway_footer_id', lang, {'id': giveaway_id}))
-    view = GiveawayView()
-    message = await ctx.send(embed=embed, view=view)
-    active_giveaways[giveaway_id] = {
-        'message_id': message.id,
-        'prize': prize,
-        'winners': winners,
-        'end_time': end_time,
-        'participants': []
-    }
-    # Salvar no banco
-    if db.is_connected():
-        db.save_giveaway(giveaway_id, {
-            '_id': giveaway_id,
+        
+    try:
+        giveaway_id = str(uuid.uuid4())
+        end_time = datetime.datetime.now() + datetime.timedelta(minutes=duration)
+        
+        embed = discord.Embed(
+            title=t('giveaway_new_title', lang),
+            description=t('giveaway_new_desc', lang, {
+                'prize': prize,
+                'winners': winners,
+                'duration': duration,
+                'description': ''
+            }),
+            color=discord.Color.blue()
+        )
+        embed.set_footer(text=t('giveaway_footer_id', lang, {'id': giveaway_id}))
+        
+        view = GiveawayView()
+        message = await ctx.send(embed=embed, view=view)
+        
+        # Salvar informações do giveaway
+        giveaway_info = {
             'message_id': message.id,
             'prize': prize,
             'winners': winners,
             'end_time': end_time,
             'participants': [],
-            'channel_id': ctx.channel.id
-        })
-    await asyncio.sleep(duration * 60)
-    await end_giveaway(giveaway_id)
+            'channel_id': ctx.channel.id  # Salvar o ID do canal
+        }
+        
+        active_giveaways[giveaway_id] = giveaway_info
+        
+        # Salvar no banco
+        if db.is_connected():
+            db.save_giveaway(giveaway_id, {
+                '_id': giveaway_id,
+                **giveaway_info
+            })
+            
+        # Agendar o encerramento
+        bot.loop.create_task(asyncio.sleep(duration * 60))
+        bot.loop.create_task(end_giveaway(giveaway_id))
+        
+    except Exception as e:
+        await log_error(f"Erro ao criar giveaway: {e}")
+        await ctx.send(t('command_error', lang))
 
 @bot.event
 async def on_raw_reaction_add(payload):
@@ -3181,65 +3192,97 @@ async def end_giveaway(giveaway_id):
     if giveaway_id not in active_giveaways:
         return
     giveaway = active_giveaways[giveaway_id]
+    
+    # Obter o canal correto onde o giveaway foi criado
     channel = None
-    for channel_id in GIVEAWAY_CHANNEL_IDS:
-        temp_channel = bot.get_channel(channel_id)
-        if temp_channel:
-            channel = temp_channel
-            break
+    if 'channel_id' in giveaway:
+        channel = bot.get_channel(giveaway['channel_id'])
+    else:
+        # Fallback para canais antigos
+        for channel_id in GIVEAWAY_CHANNEL_IDS:
+            temp_channel = bot.get_channel(channel_id)
+            if temp_channel:
+                try:
+                    message = await temp_channel.fetch_message(giveaway['message_id'])
+                    if message:
+                        channel = temp_channel
+                        break
+                except:
+                    continue
+    
     if not channel:
+        print(f"Não foi possível encontrar o canal para o giveaway {giveaway_id}")
         return
-    message = await channel.fetch_message(giveaway['message_id'])
-    if not message:
-        return
-    lang = get_user_language(message.guild.owner_id) if message.guild else 'pt'
-    participants = giveaway['participants']
-    if not participants:
+        
+    try:
+        message = await channel.fetch_message(giveaway['message_id'])
+        if not message:
+            print(f"Não foi possível encontrar a mensagem do giveaway {giveaway_id}")
+            return
+            
+        lang = get_user_language(message.guild.owner_id) if message.guild else 'pt'
+        participants = giveaway['participants']
+        
+        if not participants:
+            embed = discord.Embed(
+                title=t('giveaway_ended_title', lang),
+                description=t('giveaway_ended_no_participants', lang),
+                color=discord.Color.red()
+            )
+            await message.edit(embed=embed, view=None)
+            del active_giveaways[giveaway_id]
+            if db.is_connected():
+                db.remove_giveaway(giveaway_id)
+            return
+            
+        winners = random.sample(participants, min(giveaway['winners'], len(participants)))
+        winners_mentions = [f"<@{winner_id}>" for winner_id in winners]
+        prize_text = giveaway['prize']
+        
+        # Extrair o valor do prêmio
+        try:
+            prize_amount = int(''.join(filter(str.isdigit, prize_text)))
+        except ValueError:
+            prize_amount = 0
+            print(f"Erro ao extrair valor do prêmio: {prize_text}")
+            
+        for winner_id in winners:
+            if winner_id not in user_trades:
+                user_trades[winner_id] = 0
+                
+            if prize_amount > 0:
+                user_trades[winner_id] += prize_amount
+                if db.is_connected():
+                    db.increment_user_trades(winner_id, prize_amount)
+                    
+            # Enviar mensagem privada para o ganhador
+            try:
+                user = await bot.fetch_user(winner_id)
+                await user.send(t('giveaway_dm', lang, {
+                    'trades': prize_amount if prize_amount > 0 else prize_text,
+                    'prize': prize_text,
+                    'server': message.guild.name if message.guild else ''
+                }))
+            except Exception as e:
+                print(f"Não foi possível enviar DM para o ganhador {winner_id}: {e}")
+                
         embed = discord.Embed(
             title=t('giveaway_ended_title', lang),
-            description=t('giveaway_ended_no_participants', lang),
-            color=discord.Color.red()
+            description=t('giveaway_ended_desc', lang, {
+                'prize': prize_text,
+                'winners': ', '.join(winners_mentions)
+            }),
+            color=discord.Color.green()
         )
+        
         await message.edit(embed=embed, view=None)
         del active_giveaways[giveaway_id]
         if db.is_connected():
             db.remove_giveaway(giveaway_id)
-        return
-    winners = random.sample(participants, min(giveaway['winners'], len(participants)))
-    winners_mentions = [f"<@{winner_id}>" for winner_id in winners]
-    prize_text = giveaway['prize']
-    for winner_id in winners:
-        if winner_id not in user_trades:
-            user_trades[winner_id] = 0
-        try:
-            prize_amount = int(''.join(filter(str.isdigit, prize_text)))
-            user_trades[winner_id] += prize_amount
-            if db.is_connected():
-                db.increment_user_trades(winner_id, prize_amount)
-        except:
-            pass
-        # Enviar mensagem privada para o ganhador
-        try:
-            user = await bot.fetch_user(winner_id)
-            await user.send(t('giveaway_dm', lang, {
-                'trades': prize_amount if 'prize_amount' in locals() else prize_text,
-                'prize': prize_text,
-                'server': message.guild.name if message.guild else ''
-            }))
-        except Exception as e:
-            print(f"Não foi possível enviar DM para o ganhador {winner_id}: {e}")
-    embed = discord.Embed(
-        title=t('giveaway_ended_title', lang),
-        description=t('giveaway_ended_desc', lang, {
-            'prize': prize_text,
-            'winners': ', '.join(winners_mentions)
-        }),
-        color=discord.Color.green()
-    )
-    await message.edit(embed=embed, view=None)
-    del active_giveaways[giveaway_id]
-    if db.is_connected():
-        db.remove_giveaway(giveaway_id)
+            
+    except Exception as e:
+        print(f"Erro ao finalizar giveaway {giveaway_id}: {e}")
+        await log_error(f"Erro ao finalizar giveaway {giveaway_id}: {e}")
 
 @bot.command(name='forcegiveaway')
 async def forcegiveaway_command(ctx, giveaway_id: str):
@@ -3247,11 +3290,38 @@ async def forcegiveaway_command(ctx, giveaway_id: str):
     if ctx.author.id != ADMIN_ID:
         await ctx.send(t('admin_only', lang))
         return
-    if giveaway_id not in active_giveaways:
-        await ctx.send(t('giveaway_not_found', lang))
-        return
-    await end_giveaway(giveaway_id)
-    await ctx.send(t('giveaway_force_success', lang))
+        
+    try:
+        if giveaway_id not in active_giveaways:
+            await ctx.send(t('giveaway_not_found', lang))
+            return
+            
+        # Verificar se o giveaway já está em andamento
+        giveaway = active_giveaways[giveaway_id]
+        if 'end_time' in giveaway:
+            end_time = giveaway['end_time']
+            if isinstance(end_time, str):
+                try:
+                    end_time = datetime.datetime.fromisoformat(end_time)
+                except:
+                    end_time = datetime.datetime.now()
+                    
+            if end_time > datetime.datetime.now():
+                # Se ainda não acabou, forçar o encerramento
+                await end_giveaway(giveaway_id)
+                await ctx.send(t('giveaway_force_success', lang))
+            else:
+                # Se já acabou mas não foi processado
+                await end_giveaway(giveaway_id)
+                await ctx.send(t('giveaway_force_success', lang))
+        else:
+            # Se não tem tempo definido, apenas encerrar
+            await end_giveaway(giveaway_id)
+            await ctx.send(t('giveaway_force_success', lang))
+            
+    except Exception as e:
+        await log_error(f"Erro ao forçar encerramento do giveaway {giveaway_id}: {e}")
+        await ctx.send(t('command_error', lang))
 
 @bot.command(name='removetrade')
 @commands.has_permissions(administrator=True)
