@@ -103,15 +103,37 @@ class GiveawayView(discord.ui.View):
                 if g['message_id'] == message_id:
                     giveaway_id = gid
                     break
+                    
             if not giveaway_id or giveaway_id not in active_giveaways:
                 await interaction.response.send_message(t('giveaway_already_ended', lang), ephemeral=True)
                 return
+                
+            # Verificar se o giveaway já acabou
+            giveaway = active_giveaways[giveaway_id]
+            if 'end_time' in giveaway:
+                end_time = giveaway['end_time']
+                if isinstance(end_time, str):
+                    try:
+                        end_time = datetime.datetime.fromisoformat(end_time)
+                    except:
+                        end_time = datetime.datetime.now()
+                        
+                if end_time <= datetime.datetime.now():
+                    await interaction.response.send_message(t('giveaway_already_ended', lang), ephemeral=True)
+                    return
+            
+            # Verificar se o usuário já está participando
             if interaction.user.id in active_giveaways[giveaway_id]['participants']:
                 await interaction.response.send_message(t('giveaway_already_joined', lang), ephemeral=True)
                 return
+                
+            # Adicionar participante
             active_giveaways[giveaway_id]['participants'].append(interaction.user.id)
+            
+            # Atualizar no banco de dados
             if db.is_connected():
                 db.update_giveaway_participants(giveaway_id, active_giveaways[giveaway_id]['participants'])
+            
             # Atualizar embed com lista de participantes
             participantes = active_giveaways[giveaway_id]['participants']
             participantes_mencoes = []
