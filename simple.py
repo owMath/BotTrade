@@ -2805,6 +2805,10 @@ async def resetuser_error(ctx, error):
     except Exception as e:
         await log_error(f"Erro ao tratar erro do comando resetuser: {e}")
 
+async def schedule_giveaway_end(giveaway_id, duration):
+    await asyncio.sleep(duration * 60)
+    await end_giveaway(giveaway_id)
+
 @bot.command(name='giveaway')
 async def giveaway_command(ctx, duration: int, winners: int, *, prize: str):
     lang = get_user_language(ctx.author.id)
@@ -2854,9 +2858,8 @@ async def giveaway_command(ctx, duration: int, winners: int, *, prize: str):
                 **giveaway_info
             })
             
-        # Agendar o encerramento
-        bot.loop.create_task(asyncio.sleep(duration * 60))
-        bot.loop.create_task(end_giveaway(giveaway_id))
+        # Agendar o encerramento corretamente
+        bot.loop.create_task(schedule_giveaway_end(giveaway_id, duration))
         
     except Exception as e:
         await log_error(f"Erro ao criar giveaway: {e}")
