@@ -3181,12 +3181,8 @@ async def end_giveaway(giveaway_id):
     if giveaway_id not in active_giveaways:
         return
     giveaway = active_giveaways[giveaway_id]
-    channel = None
-    for channel_id in GIVEAWAY_CHANNEL_IDS:
-        temp_channel = bot.get_channel(channel_id)
-        if temp_channel:
-            channel = temp_channel
-            break
+    channel_id = giveaway.get('channel_id')
+    channel = bot.get_channel(channel_id) if channel_id else None
     if not channel:
         return
     message = await channel.fetch_message(giveaway['message_id'])
