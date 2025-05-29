@@ -36,7 +36,6 @@ class Database:
             self.guild_languages_collection = self.db['guild_languages']
             self.slot_cooldowns_collection = self.db['slot_cooldowns'] # Coleção para cooldowns de slot
             self.box_cooldowns_collection = self.db['box_cooldowns'] # Nova coleção para cooldowns de box
-            self.dice_cooldowns_collection = self.db['dice_cooldowns'] # Nova coleção para cooldowns de dado
             self.bets_collection = self.db['bets']
             self.bets_collection.create_index('bet_id', unique=True)
             self.giveaways_collection = self.db['giveaways']
@@ -50,7 +49,6 @@ class Database:
             self.guild_languages_collection.create_index('guild_id', unique=True)
             self.slot_cooldowns_collection.create_index('user_id', unique=True)
             self.box_cooldowns_collection.create_index('user_id', unique=True) # Novo índice para box
-            self.dice_cooldowns_collection.create_index('user_id', unique=True) # Novo índice para dado
             
             print("✅ Conexão com MongoDB estabelecida com sucesso")
             print("🔄 Ping ao servidor MongoDB bem-sucedido")
@@ -635,6 +633,53 @@ class Database:
             return {}
     
     # ===============================================
+    # Operações para Histórico de Trades
+    # ===============================================
+    
+    def get_user_trade_history(self, user_id):
+        """
+        Obtém o histórico de trades de um usuário
+        
+        Args:
+            user_id (int): ID do usuário
+            
+        Returns:
+            list: Lista de dicionários com informações dos trades
+        """
+        if not self.is_connected():
+            return []
+            
+        # Aqui você implementaria a consulta ao histórico de trades do usuário
+        # Por simplicidade, retornaremos uma lista vazia
+        try:
+            # Implementação fictícia para teste
+            return []
+        except Exception as e:
+            print(f"❌ Erro ao obter histórico de trades do usuário {user_id}: {e}")
+            return []
+    
+    def get_user_total_completed_trades(self, user_id):
+        """
+        Obtém o total de trades completados por um usuário
+        
+        Args:
+            user_id (int): ID do usuário
+            
+        Returns:
+            int: Número total de trades completados
+        """
+        if not self.is_connected():
+            return 0
+            
+        # Aqui você implementaria a contagem de trades completados
+        try:
+            # Implementação fictícia para teste
+            return 0
+        except Exception as e:
+            print(f"❌ Erro ao obter total de trades completados do usuário {user_id}: {e}")
+            return 0
+    
+    # ===============================================
     # Operações para Estatísticas
     # ===============================================
     
@@ -990,65 +1035,4 @@ class Database:
 
     def remove_giveaway(self, giveaway_id):
         self.giveaways_collection.delete_one({'_id': giveaway_id})
-    
-    # ===============================================
-    # Operações para Cooldown de Dado
-    # ===============================================
-    
-    def get_last_dice_time(self, user_id):
-        """Obtém o timestamp do último uso do dado por um usuário."""
-        if not self.is_connected():
-            return None
-            
-        try:
-            result = self.dice_cooldowns_collection.find_one({'user_id': user_id})
-            return result['timestamp'] if result else None
-        except Exception as e:
-            print(f"❌ Erro ao obter último uso de dado do usuário {user_id}: {e}")
-            return None
-    
-    def set_last_dice_time(self, user_id, timestamp=None):
-        """Define o timestamp do último uso do dado por um usuário."""
-        if not self.is_connected():
-            return False
-            
-        if timestamp is None:
-            timestamp = datetime.datetime.now()
-            
-        try:
-            self.dice_cooldowns_collection.update_one(
-                {'user_id': user_id},
-                {'$set': {'user_id': user_id, 'timestamp': timestamp}},
-                upsert=True
-            )
-            return True
-        except Exception as e:
-            print(f"❌ Erro ao definir último uso de dado do usuário {user_id}: {e}")
-            return False
-    
-    def get_all_dice_times(self):
-        """Obtém todos os registros de timestamps de uso do dado."""
-        if not self.is_connected():
-            return {}
-            
-        try:
-            result = {}
-            for doc in self.dice_cooldowns_collection.find():
-                result[doc['user_id']] = doc['timestamp']
-            return result
-        except Exception as e:
-            print(f"❌ Erro ao obter todos os cooldowns de dado: {e}")
-            return {}
-    
-    def remove_dice_cooldown(self, user_id):
-        """Remove o cooldown do dado de um usuário."""
-        if not self.is_connected():
-            return False
-            
-        try:
-            self.dice_cooldowns_collection.delete_one({'user_id': user_id})
-            return True
-        except Exception as e:
-            print(f"❌ Erro ao remover cooldown de dado do usuário {user_id}: {e}")
-            return False
         
