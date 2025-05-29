@@ -1218,12 +1218,17 @@ async def claimtrade_command(ctx):
 
 @bot.command(name='usetrade')
 @in_trade_channel()  # Verifica se o comando está sendo usado no canal correto
-async def usetrade_command(ctx, trades_amount: int = 2):
+async def usetrade_command(ctx, trades_amount: int = None):
     """Comando para usuários usarem um trade disponível com quantidade específica de trades"""
     try:
         user_id = ctx.author.id
         # Obter idioma do usuário
         lang = get_user_language(user_id)
+        
+        # NOVO: Exigir que o usuário especifique a quantidade
+        if trades_amount is None:
+            await ctx.send(t('error_usetrade_quantity_required', lang))
+            return
         
         # Verificar no MongoDB primeiro se estiver conectado
         if db.is_connected():
@@ -2925,9 +2930,20 @@ async def deletegiveaway_command(ctx, giveaway_id: str):
         await ctx.send(t('giveaway_not_found', lang))
         return
     giveaway = active_giveaways[giveaway_id]
-    channel = bot.get_channel(GIVEAWAY_CHANNEL_ID)
+    channel = None
+    for channel_id in GIVEAWAY_CHANNEL_IDS:
+        channel = bot.get_channel(channel_id)
+        if channel:
+            try:
+                message = await channel.fetch_message(giveaway['message_id'])
+                if message:
+                    break
+            except:
+                continue
+    if not channel:
+        await ctx.send(t('giveaway_not_found', lang))
+        return
     try:
-        message = await channel.fetch_message(giveaway['message_id'])
         await message.delete()
     except:
         pass
@@ -2939,25 +2955,14 @@ async def deletegiveaway_command(ctx, giveaway_id: str):
 @bot.command(name='resetdice')
 @commands.has_permissions(administrator=True)
 async def resetdice_command(ctx, member: discord.Member):
-    """Comando para resetar o cooldown do dado de um usuário"""
-    lang = get_user_language(ctx.author.id)
-    try:
-        if not member:
-            await ctx.send(t('resetdice_no_member', lang))
-            return
-        if member.id in user_dice_cooldowns:
-            del user_dice_cooldowns[member.id]
-            if member.id in user_dice_reminders:
-                del user_dice_reminders[member.id]
-            if db.is_connected():
-                if hasattr(db, 'remove_dice_cooldown'):
-                    db.remove_dice_cooldown(member.id)
-            await ctx.send(t('resetdice_success', lang, {'user': member.display_name}))
-        else:
-            await ctx.send(t('resetdice_not_on_cooldown', lang, {'user': member.display_name}))
-    except Exception as e:
-        await log_error(f"Erro no comando resetdice: {e}")
-        await ctx.send(t('command_error', lang))
+    """Comando para resetar o cooldown do dado de um usuário (apenas administradores)."""
+    user_id = str(member.id)
+    
+    # Remover cooldown do banco de dados
+    if db.remove_dice_cooldown(user_id):
+        await ctx.send(f"✅ Cooldown do dado resetado para {member.mention}")
+    else:
+        await ctx.send("❌ Erro ao resetar cooldown do dado")
 
 # Dicionário para cooldown do dado
 user_dice_cooldowns = {}
@@ -3032,103 +3037,59 @@ async def send_dice_reminder(user, remind_time, lang):
         await log_error(f"Erro ao processar lembrete de dado: {e}")
 
 @bot.command(name='dice')
-@in_trade_channel()
 async def dice_command(ctx):
-    """Minigame de dados para ganhar trades"""
-    user_id = ctx.author.id
-    lang = get_user_language(user_id)
+    """Comando para jogar o dado e ganhar trades."""
+    if ctx.channel.id != TRADE_CHANNEL_ID:
+        await ctx.send("❌ Este comando só pode ser usado no canal de trades!")
+        return
+
+    user_id = str(ctx.author.id)
     current_time = datetime.datetime.now()
-    # Cooldown
-    if user_id in user_dice_cooldowns:
-        last_use = user_dice_cooldowns[user_id]
-        time_diff = (current_time - last_use).total_seconds()
-        if time_diff < 300:
-            minutes_left = 5 - (time_diff / 60)
-            embed = discord.Embed(
-                title=t('dice_cooldown_title', lang),
-                description=t('dice_cooldown_desc', lang, {
-                    'minutes': int(minutes_left),
-                    'seconds': int((minutes_left % 1) * 60)
-                }),
-                color=0xff9900
-            )
-            view = DiceReminderView(user_id, lang)
-            await ctx.send(embed=embed, view=view)
+
+    # Verificar cooldown no banco de dados
+    last_dice_time = db.get_last_dice_time(user_id)
+    if last_dice_time:
+        time_diff = current_time - last_dice_time
+        if time_diff.total_seconds() < 300:  # 5 minutos em segundos
+            remaining_time = 300 - int(time_diff.total_seconds())
+            minutes = remaining_time // 60
+            seconds = remaining_time % 60
+            await ctx.send(f"⏳ Você precisa esperar {minutes}m {seconds}s antes de jogar o dado novamente!")
             return
+
     # Jogar os dados
-    d1 = random.randint(1, 6)
-    d2 = random.randint(1, 6)
-    soma = d1 + d2
+    dice1 = random.randint(1, 6)
+    dice2 = random.randint(1, 6)
+    total = dice1 + dice2
+
+    # Calcular trades ganhos
     trades_won = 0
-    if soma == 12:
+    if total == 7:
         trades_won = 3
-    elif soma in [10, 11]:
+    elif total == 11:
         trades_won = 2
-    elif 7 <= soma <= 9:
+    elif total in [2, 3, 12]:
         trades_won = 1
-    # Mensagem de resultado
-    if trades_won > 0:
-        if user_id not in user_trades:
-            user_trades[user_id] = 0
-        user_trades[user_id] += trades_won
-        if db.is_connected():
-            db.increment_user_trades(user_id, trades_won)
-            # Buscar valor atualizado do banco
-            user_trades[user_id] = db.get_user_trades(user_id)
+
+    # Atualizar trades do usuário
+    current_trades = db.get_user_trades(user_id) or 0
+    new_trades = current_trades + trades_won
+    db.update_user_trades(user_id, new_trades)
+
+    # Atualizar cooldown no banco de dados
+    db.set_last_dice_time(user_id, current_time)
+
+    # Criar embed com o resultado
     embed = discord.Embed(
-        title=t('dice_result_title', lang),
-        description=t('dice_result_desc', lang, {'user': ctx.author.mention}),
-        color=0x00ccff if trades_won > 0 else 0xff5555
+        title="🎲 Resultado do Dado",
+        color=discord.Color.blue()
     )
-    embed.add_field(
-        name=t('dice_roll', lang),
-        value=f"🎲 {d1} + 🎲 {d2} = **{soma}**",
-        inline=False
-    )
-    if trades_won == 3:
-        embed.add_field(name=t('dice_prize', lang), value=t('dice_win_3', lang), inline=False)
-    elif trades_won == 2:
-        embed.add_field(name=t('dice_prize', lang), value=t('dice_win_2', lang), inline=False)
-    elif trades_won == 1:
-        embed.add_field(name=t('dice_prize', lang), value=t('dice_win_1', lang), inline=False)
-    else:
-        embed.add_field(name=t('dice_prize', lang), value=t('dice_no_win', lang), inline=False)
-    if trades_won > 0:
-        embed.add_field(name=t('dice_total_trades', lang), value=t('dice_total_count', lang, {'count': user_trades[user_id]}), inline=False)
-    user_dice_cooldowns[user_id] = current_time
-    if db.is_connected():
-        if hasattr(db, 'set_last_dice_time'):
-            db.set_last_dice_time(user_id, current_time)
-    view = DiceReminderView(user_id, lang)
-    await ctx.send(embed=embed, view=view)
+    embed.add_field(name="Dados", value=f"🎲 {dice1} + 🎲 {dice2} = {total}", inline=False)
+    embed.add_field(name="Trades Ganhos", value=f"+{trades_won} trades", inline=False)
+    embed.add_field(name="Total de Trades", value=f"{new_trades} trades", inline=False)
+    embed.set_footer(text=f"Solicitado por {ctx.author.name}")
 
-class BetVoteView(View):
-    def __init__(self, bet_id, options, locked):
-        super().__init__(timeout=None)
-        self.bet_id = bet_id
-        for opt in options:
-            btn = Button(label=opt['text'], style=discord.ButtonStyle.primary, custom_id=f"bet_{bet_id}_{opt['id']}")
-            btn.disabled = locked
-            btn.callback = self.make_callback(opt['id'])
-            self.add_item(btn)
-
-    def make_callback(self, option_id):
-        async def callback(interaction):
-            user_id = interaction.user.id
-            lang = get_user_language(user_id)
-            bet = db.get_bet(self.bet_id)
-            if not bet or bet['status'] != 'open':
-                await interaction.response.send_message(t('bet_closed', lang), ephemeral=True)
-                return
-            # Checar se já votou
-            for opt in bet['options']:
-                if user_id in opt['votes']:
-                    if opt['id'] == option_id:
-                        await interaction.response.send_message(t('bet_already_voted', lang), ephemeral=True)
-                        return
-            db.add_vote(self.bet_id, option_id, user_id)
-            await interaction.response.send_message(t('bet_vote_success', lang), ephemeral=True)
-        return callback
+    await ctx.send(embed=embed)
 
 @bot.command(name='bet')
 @commands.has_permissions(administrator=True)
@@ -3399,3 +3360,42 @@ async def on_command_error(ctx, error):
     else:
         await log_error(f"Erro em comando: {error}")
         await ctx.send(t('command_error', lang))
+
+class BetVoteView(discord.ui.View):
+    def __init__(self, bet_id, options, locked=False):
+        super().__init__(timeout=None)
+        self.bet_id = bet_id
+        self.locked = locked
+        for opt in options:
+            self.add_item(BetVoteButton(bet_id, opt['id'], opt['text'], locked))
+
+class BetVoteButton(discord.ui.Button):
+    def __init__(self, bet_id, option_id, label, locked):
+        super().__init__(label=label, style=discord.ButtonStyle.primary, custom_id=f"bet_{bet_id}_{option_id}")
+        self.bet_id = bet_id
+        self.option_id = option_id
+        self.locked = locked
+        self.disabled = locked
+
+    async def callback(self, interaction: discord.Interaction):
+        # Verifica se a aposta está travada
+        bet = db.get_bet(self.bet_id)
+        lang = get_user_language(interaction.user.id)
+        if not bet or bet.get('status') != 'open':
+            await interaction.response.send_message(t('bet_closed', lang), ephemeral=True)
+            return
+        # Verifica se o usuário já votou em alguma opção
+        for opt in bet['options']:
+            if interaction.user.id in opt['votes']:
+                await interaction.response.send_message(t('bet_already_voted', lang), ephemeral=True)
+                return
+        # Registra o voto
+        db.add_vote(self.bet_id, self.option_id, interaction.user.id)
+        # Atualiza o embed com a nova contagem de votos
+        bet = db.get_bet(self.bet_id)
+        embed = interaction.message.embeds[0].copy()
+        embed.clear_fields()
+        for opt in bet['options']:
+            embed.add_field(name=f"{opt['id']}. {opt['text']}", value=f"{len(opt['votes'])} votos", inline=False)
+        await interaction.message.edit(embed=embed, view=self.view)
+        await interaction.response.send_message(t('bet_vote_success', lang), ephemeral=True)

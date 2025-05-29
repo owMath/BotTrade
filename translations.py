@@ -286,6 +286,7 @@ TRANSLATIONS = {
         'available_languages': 'Idiomas disponíveis: {languages}',
         'invalid_language': '⚠️ Código de idioma inválido: "{code}". Use pt, en, es, de, it, fr, pl',
         'language_updated': '✅ Seu idioma foi alterado para **{language}**!',
+        'error_usetrade_quantity_required': "Você precisa especificar a quantidade de trades. Exemplo: `!usetrade 1`",
     },
     
     # Inglês
@@ -558,6 +559,7 @@ TRANSLATIONS = {
         'available_languages': 'Available languages: {languages}',
         'invalid_language': '⚠️ Invalid language code: "{code}". Use pt, en, es, de, it, fr, pl',
         'language_updated': '✅ Your language has been changed to **{language}**!',
+        'error_usetrade_quantity_required': "You need to specify the number of trades. Example: `!usetrade 1`",
     },
     
     # Espanhol
@@ -625,11 +627,11 @@ TRANSLATIONS = {
 
         # Giveaway
         'giveaway_title': '🎉 ¡SORTEO DE TRADES! 🎉',
-        'giveaway_desc': 'Premio: **{prize}**\nCantidad: **{trades} trades**\n¡Haz clic en 🎉 para participar!\n\nDuración: **{duration}** minutos\nGanadores: **{winners}**',
+        'giveaway_desc': 'Premio: **{prize}**\nCantidad: **{trades} trade(ów)**\n¡Haz clic en 🎉 para participar!\n\nDuración: **{duration}** minutos\nGanadores: **{winners}**',
         'giveaway_footer': 'Iniciado por {admin}',
         'giveaway_end_title': '🎊 ¡SORTEO FINALIZADO! 🎊',
-        'giveaway_end_desc': 'Ganador(es): {winners}\nPremio: **{prize}**\n¡Cada uno recibe **{trades} trades**!',
-        'giveaway_dm': '🎉 ¡Felicidades! Ganaste **{trades} trades** ({prize}) en el sorteo del servidor {server}!',
+        'giveaway_end_desc': 'Ganador(es): {winners}\nPremio: **{prize}**\n¡Cada uno recibe **{trades} trade(ów)**!',
+        'giveaway_dm': '🎉 ¡Felicidades! Ganaste **{trades} trade(ów)** ({prize}) en el sorteo del servidor {server}!',
         'giveaway_role_required': 'Solo los miembros con el rol {role} pueden participar en este sorteo.',
         'giveaway_no_role': 'No tienes el rol necesario para participar en este sorteo.',
         'giveaway_no_eligible': '¡Nadie con el rol necesario participó en el sorteo!',
@@ -649,7 +651,7 @@ TRANSLATIONS = {
         'dice_cooldown_desc': 'Necesitas esperar **{minutes} minutos y {seconds} segundos** para jugar de nuevo.',
         'dice_reminder_button': 'Recordarme cuando esté disponible',
         'dice_reminder_set': 'Recibirás un recordatorio en {minutes} minutos cuando puedas jugar de nuevo.',
-        'dice_reminder_message': '🎲 ¡El minijuego de dados está disponible de nuevo! Usa !dice para jugar.',
+        'dice_reminder_message': '🎲 El minijuego de dados está disponible de nuevo! Usa !dice para jugar.',
         'dice_already_available': '¡El minijuego ya está disponible! Usa !dice para jugar.',
 
         # Box Game
@@ -829,6 +831,7 @@ TRANSLATIONS = {
         'available_languages': 'Idiomas disponibles: {languages}',
         'invalid_language': '⚠️ Código de idioma inválido: "{code}". Usa pt, en, es, de, it, fr, pl',
         'language_updated': '✅ ¡Tu idioma ha sido cambiado a **{language}**!',
+        'error_usetrade_quantity_required': "Necesitas especificar la cantidad de trades. Ejemplo: `!usetrade 1`",
     },
     
     # Francês
@@ -888,11 +891,11 @@ TRANSLATIONS = {
 
     # Giveaway
     'giveaway_title': '🎉 TIRAGE AU SORT DE TRADES ! 🎉',
-    'giveaway_desc': 'Prix : **{prize}**\nQuantité : **{trades} trades**\nCliquez sur 🎉 pour participer !\n\nDurée : **{duration}** minutes\nGagnants : **{winners}**',
+    'giveaway_desc': 'Prix : **{prize}**\nQuantité : **{trades} trade(ów)**\nCliquez sur 🎉 pour participer !\n\nDurée : **{duration}** minutes\nGagnants : **{winners}**',
     'giveaway_footer': 'Lancé par {admin}',
     'giveaway_end_title': '🎊 TIRAGE TERMINÉ ! 🎊',
-    'giveaway_end_desc': 'Gagnant(s) : {winners}\nPrix : **{prize}**\nChacun reçoit **{trades} trades** !',
-    'giveaway_dm': '🎉 Félicitations ! Vous avez gagné **{trades} trades** ({prize}) lors du tirage au sort sur le serveur {server} !',
+    'giveaway_end_desc': 'Gagnant(s) : {winners}\nPrix : **{prize}**\nChacun reçoit **{trades} trade(ów)** !',
+    'giveaway_dm': '🎉 Félicitations ! Vous avez gagné **{trades} trade(ów)** ({prize}) lors du tirage au sort sur le serveur {server} !',
     'giveaway_role_required': 'Seuls les membres avec le rôle {role} peuvent participer à ce tirage au sort.',
     'giveaway_no_role': 'Vous n\'avez pas le rôle requis pour participer à ce tirage au sort.',
     'giveaway_no_eligible': 'Personne avec le rôle requis n\'a participé au tirage au sort !',
@@ -950,7 +953,7 @@ TRANSLATIONS = {
     'not_your_button': 'Ce bouton n\'est pas pour vous!',
     'slot_already_available': 'Le slot est déjà disponible pour utilisation!',
     'slot_reminder_set': 'Prêt! Je vous préviendrai quand vous pourrez jouer à nouveau dans environ {minutes} minute(s).',
-    'slot_reminder_message': '⏰ **Rappel:** Le slot est à nouveau disponible! Utilisez la commande `!slot` pour tenter votre chance!',
+    'slot_reminder_message': '⏰ **Rappel:** Le slot est à nouveau disponible! Utilisez la commande `!slot`, pour tenter votre chance!',
     'slot_result_title': '🎰 Résultat du Slot',
     'slot_result_desc': '{user} a tourné la machine à sous!',
     'slot_machine': 'Machine à Sous',
@@ -1024,6 +1027,7 @@ TRANSLATIONS = {
     'available_languages': 'Langues disponibles: {languages}',
     'invalid_language': '⚠️ Code de langue invalide: "{code}". Utilisez pt, en, es, de, it, fr, pl',
     'language_updated': '✅ Votre langue a été changée pour **{language}**!',
+    'error_usetrade_quantity_required': "Vous devez spécifier le nombre de trades. Exemple: `!usetrade 1`",
     },
 
     # Alemão
@@ -1159,9 +1163,9 @@ TRANSLATIONS = {
     'slot_result_desc': '{user} hat den Slot gedreht!',
     'slot_machine': 'Spielautomat',
     'slot_result': 'Ergebnis',
-    'slot_jackpot': '🏆 JACKPOT! Alle Symbole gleich! Sie haben 3 Trades gewonnen!',
-    'slot_two_match': '🎉 Zwei gleiche Symbole! Sie haben 2 Trades gewonnen!',
-    'slot_no_match': '😢 Keine Kombination. Versuchen Sie es später erneut!',
+    'slot_jackpot': '🏆 JACKPOT! Wszystkie symbole są takie same! Wygrałeś 3 wymiany!',
+    'slot_two_match': '🎉 Dwa identyczne symbole! Wygrałeś 2 wymiany!',
+    'slot_no_match': '😢 Brak kombinacji. Spróbuj ponownie później!',
     'slot_prize': 'Preis',
     'slot_trades_won': 'Sie haben **{count}** Trades gewonnen!',
     'slot_total_trades': 'Gesamte Trades',
@@ -1228,6 +1232,7 @@ TRANSLATIONS = {
     'available_languages': 'Verfügbare Sprachen: {languages}',
     'invalid_language': '⚠️ Ungültiger Sprachcode: "{code}". Verwenden Sie de, en oder es.',
     'language_updated': '✅ Ihre Sprache wurde auf **{language}** geändert!',
+    'error_usetrade_quantity_required': "Du musst die Anzahl der Trades angeben. Beispiel: `!usetrade 1`",
     },
 
     # Italiano
@@ -1432,6 +1437,7 @@ TRANSLATIONS = {
     'available_languages': 'Lingue disponibili: {languages}',
     'invalid_language': '⚠️ Codice lingua non valido: "{code}". Usa pt, en, es, de, it, fr, pl',
     'language_updated': '✅ La tua lingua è stata cambiata in **{language}**!',
+    'error_usetrade_quantity_required': "Devi specificare il numero di trades. Esempio: `!usetrade 1`",
     },
 
     # Polonês
@@ -1572,8 +1578,8 @@ TRANSLATIONS = {
     'slot_no_match': '😢 Brak kombinacji. Spróbuj ponownie później!',
     'slot_prize': 'Nagroda',
     'slot_trades_won': 'Wygrałeś **{count}** wymian(y)!',
-    'slot_total_trades': 'Łączna liczba wymian',
-    'slot_total_count': 'Masz teraz **{count}** wymian(y).',
+    'slot_total_trades': 'Gesamte Trades',
+    'slot_total_count': 'Sie haben jetzt **{count}** Trades.',
     'resetslot_no_member': '⚠️ Musisz oznaczyć członka, aby zresetować czas oczekiwania slotów.',
     'resetslot_success': '✅ Czas oczekiwania slotów dla **{user}** został zresetowany.',
     'resetslot_not_on_cooldown': '📭 **{user}** nie jest w czasie oczekiwania slotów.',
@@ -1636,6 +1642,7 @@ TRANSLATIONS = {
     'available_languages': 'Dostępne języki: {languages}',
     'invalid_language': '⚠️ Nieprawidłowy kod języka: "{code}". Użyj pt, en, es, de, it, fr, pl',
     'language_updated': '✅ Twój język został zmieniony na **{language}**!',
+    'error_usetrade_quantity_required': "Musisz podać liczbę trades. Przykład: `!usetrade 1`",
     },
 }
 
