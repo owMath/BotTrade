@@ -96,6 +96,13 @@ class GiveawayView(discord.ui.View):
     async def join_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         lang = get_user_language(interaction.user.id)
         try:
+            # Verificar se a mensagem ainda existe
+            try:
+                message = await interaction.message.fetch()
+            except discord.NotFound:
+                await interaction.response.send_message(t('giveaway_already_ended', lang), ephemeral=True)
+                return
+
             message_id = interaction.message.id
             # Buscar o giveaway_id pelo message_id
             giveaway_id = None
@@ -147,16 +154,33 @@ class GiveawayView(discord.ui.View):
                         participantes_mencoes.append(f"<@{pid}>")
             else:
                 participantes_mencoes = [f"<@{pid}>" for pid in participantes]
-            embed = interaction.message.embeds[0].copy()
-            embed.clear_fields()
-            # Recriar campos principais
-            embed.description = embed.description.split("\n\nClique no botão abaixo")[0] + "\n\nClique no botão abaixo para participar!"
-            embed.add_field(name="Participantes", value="\n".join(participantes_mencoes) if participantes_mencoes else "Ninguém participou ainda.", inline=False)
-            await interaction.message.edit(embed=embed, view=self)
-            await interaction.response.send_message(t('giveaway_join_success', lang), ephemeral=True)
+
+            try:
+                embed = interaction.message.embeds[0].copy()
+                embed.clear_fields()
+                # Recriar campos principais
+                embed.description = embed.description.split("\n\nClique no botão abaixo")[0] + "\n\nClique no botão abaixo para participar!"
+                embed.add_field(name="Participantes", value="\n".join(participantes_mencoes) if participantes_mencoes else "Ninguém participou ainda.", inline=False)
+                
+                # Primeiro responder à interação
+                await interaction.response.send_message(t('giveaway_join_success', lang), ephemeral=True)
+                
+                # Depois editar a mensagem
+                await interaction.message.edit(embed=embed, view=self)
+            except discord.NotFound:
+                # Se a mensagem não existir mais, apenas responder à interação
+                await interaction.response.send_message(t('giveaway_already_ended', lang), ephemeral=True)
+            except Exception as e:
+                await log_error(f"Erro ao atualizar mensagem do giveaway: {e}")
+                # Se houver erro ao editar, pelo menos responder à interação
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(t('giveaway_join_success', lang), ephemeral=True)
+                
         except Exception as e:
             await log_error(f"Erro no botão de giveaway: {e}")
-            await interaction.response.send_message(t('command_error', lang), ephemeral=True)
+            # Garantir que a interação seja respondida em caso de erro
+            if not interaction.response.is_done():
+                await interaction.response.send_message(t('command_error', lang), ephemeral=True)
 
 def generate_code(length=6):
     """Gera um código aleatório para o trade"""
@@ -3043,11 +3067,18 @@ async def dice_command(ctx):
     user_id = ctx.author.id
     lang = get_user_language(user_id)
     current_time = datetime.datetime.now()
+    
+    # Verificar cooldown no MongoDB primeiro
+    if db.is_connected():
+        last_use = db.get_last_dice_time(user_id)
+        if last_use:
+            user_dice_cooldowns[user_id] = last_use
+    
     # Cooldown
     if user_id in user_dice_cooldowns:
         last_use = user_dice_cooldowns[user_id]
         time_diff = (current_time - last_use).total_seconds()
-        if time_diff < 300:
+        if time_diff < 300:  # 5 minutos
             minutes_left = 5 - (time_diff / 60)
             embed = discord.Embed(
                 title=t('dice_cooldown_title', lang),
@@ -3060,6 +3091,7 @@ async def dice_command(ctx):
             view = DiceReminderView(user_id, lang)
             await ctx.send(embed=embed, view=view)
             return
+    
     # Jogar os dados
     d1 = random.randint(1, 6)
     d2 = random.randint(1, 6)
@@ -3071,6 +3103,7 @@ async def dice_command(ctx):
         trades_won = 2
     elif 7 <= soma <= 9:
         trades_won = 1
+    
     # Mensagem de resultado
     if trades_won > 0:
         if user_id not in user_trades:
@@ -3080,16 +3113,19 @@ async def dice_command(ctx):
             db.increment_user_trades(user_id, trades_won)
             # Buscar valor atualizado do banco
             user_trades[user_id] = db.get_user_trades(user_id)
+    
     embed = discord.Embed(
         title=t('dice_result_title', lang),
         description=t('dice_result_desc', lang, {'user': ctx.author.mention}),
         color=0x00ccff if trades_won > 0 else 0xff5555
     )
+    
     embed.add_field(
         name=t('dice_roll', lang),
         value=f"🎲 {d1} + 🎲 {d2} = **{soma}**",
         inline=False
     )
+    
     if trades_won == 3:
         embed.add_field(name=t('dice_prize', lang), value=t('dice_win_3', lang), inline=False)
     elif trades_won == 2:
@@ -3098,12 +3134,15 @@ async def dice_command(ctx):
         embed.add_field(name=t('dice_prize', lang), value=t('dice_win_1', lang), inline=False)
     else:
         embed.add_field(name=t('dice_prize', lang), value=t('dice_no_win', lang), inline=False)
+    
     if trades_won > 0:
         embed.add_field(name=t('dice_total_trades', lang), value=t('dice_total_count', lang, {'count': user_trades[user_id]}), inline=False)
+    
+    # Atualizar cooldown em memória e no banco de dados
     user_dice_cooldowns[user_id] = current_time
     if db.is_connected():
-        if hasattr(db, 'set_last_dice_time'):
-            db.set_last_dice_time(user_id, current_time)
+        db.set_last_dice_time(user_id, current_time)
+    
     view = DiceReminderView(user_id, lang)
     await ctx.send(embed=embed, view=view)
 
