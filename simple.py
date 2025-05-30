@@ -1218,12 +1218,17 @@ async def claimtrade_command(ctx):
 
 @bot.command(name='usetrade')
 @in_trade_channel()  # Verifica se o comando está sendo usado no canal correto
-async def usetrade_command(ctx, trades_amount: int = 2):
+async def usetrade_command(ctx, trades_amount: int = None):
     """Comando para usuários usarem um trade disponível com quantidade específica de trades"""
     try:
         user_id = ctx.author.id
         # Obter idioma do usuário
         lang = get_user_language(user_id)
+        
+        # Verificar se a quantidade de trades foi especificada
+        if trades_amount is None:
+            await ctx.send(t('specify_trades_amount', lang))
+            return
         
         # Verificar no MongoDB primeiro se estiver conectado
         if db.is_connected():

@@ -286,6 +286,7 @@ TRANSLATIONS = {
         'available_languages': 'Idiomas disponíveis: {languages}',
         'invalid_language': '⚠️ Código de idioma inválido: "{code}". Use pt, en, es, de, it, fr, pl',
         'language_updated': '✅ Seu idioma foi alterado para **{language}**!',
+        'specify_trades_amount': '⚠️ Por favor, especifique a quantidade de trades que deseja usar.\nExemplo: `!usetrade 1`',
     },
     
     # Inglês
@@ -558,6 +559,7 @@ TRANSLATIONS = {
         'available_languages': 'Available languages: {languages}',
         'invalid_language': '⚠️ Invalid language code: "{code}". Use pt, en, es, de, it, fr, pl',
         'language_updated': '✅ Your language has been changed to **{language}**!',
+        'specify_trades_amount': '⚠️ Please specify the number of trades you want to use.\nExample: `!usetrade 1`',
     },
     
     # Espanhol
@@ -625,11 +627,11 @@ TRANSLATIONS = {
 
         # Giveaway
         'giveaway_title': '🎉 ¡SORTEO DE TRADES! 🎉',
-        'giveaway_desc': 'Premio: **{prize}**\nCantidad: **{trades} trades**\n¡Haz clic en 🎉 para participar!\n\nDuración: **{duration}** minutos\nGanadores: **{winners}**',
+        'giveaway_desc': 'Premio: **{prize}**\nCantidad: **{trades} trade(ów)**\n¡Haz clic en 🎉 para participar!\n\nDuración: **{duration}** minutos\nGanadores: **{winners}**',
         'giveaway_footer': 'Iniciado por {admin}',
         'giveaway_end_title': '🎊 ¡SORTEO FINALIZADO! 🎊',
-        'giveaway_end_desc': 'Ganador(es): {winners}\nPremio: **{prize}**\n¡Cada uno recibe **{trades} trades**!',
-        'giveaway_dm': '🎉 ¡Felicidades! Ganaste **{trades} trades** ({prize}) en el sorteo del servidor {server}!',
+        'giveaway_end_desc': 'Ganador(es): {winners}\nPremio: **{prize}**\n¡Cada uno recibe **{trades} trade(ów)**!',
+        'giveaway_dm': '🎉 ¡Felicidades! Ganaste **{trades} trade(ów)** ({prize}) en el sorteo del servidor {server}!',
         'giveaway_role_required': 'Solo los miembros con el rol {role} pueden participar en este sorteo.',
         'giveaway_no_role': 'No tienes el rol necesario para participar en este sorteo.',
         'giveaway_no_eligible': '¡Nadie con el rol necesario participó en el sorteo!',
@@ -649,12 +651,12 @@ TRANSLATIONS = {
         'dice_cooldown_desc': 'Necesitas esperar **{minutes} minutos y {seconds} segundos** para jugar de nuevo.',
         'dice_reminder_button': 'Recordarme cuando esté disponible',
         'dice_reminder_set': 'Recibirás un recordatorio en {minutes} minutos cuando puedas jugar de nuevo.',
-        'dice_reminder_message': '🎲 ¡El minijuego de dados está disponible de nuevo! Usa !dice para jugar.',
+        'dice_reminder_message': '🎲 El minijuego de dados está disponible de nuevo! Usa !dice para jugar.',
         'dice_already_available': '¡El minijuego ya está disponible! Usa !dice para jugar.',
 
         # Box Game
         'box_game_title': '🎮 Juego de Cajas',
-        'box_game_desc': '¡{user}, elige una de las cajas a continuación! Una contiene un trade, las demás están vacías.',
+        'box_game_desc': '{user}, elige una de las cajas abajo! Una contiene un trade, las demás están vacías.',
         'box_game_prize_title': '🎁 Premio',
         'box_game_prize_desc': '¡Si eliges la caja correcta, ganarás 1 trade!',
         'box_win_title': '🎉 ¡Lo conseguiste!',
@@ -671,7 +673,7 @@ TRANSLATIONS = {
         'box_cooldown_desc': 'Debes esperar {minutes} minutos y {seconds} segundos para jugar de nuevo.',
         'box_reminder_button': 'Recordarme cuando esté disponible',
         'box_reminder_set': 'Recibirás un recordatorio en {minutes} minutos cuando puedas jugar de nuevo.',
-        'box_reminder_message': '🎮 ¡El juego de cajas está disponible de nuevo! Usa !box para jugar.',
+        'box_reminder_message': '🎮 El juego de cajas está disponible de nuevo! Usa !box para jugar.',
         'box_already_available': '¡El juego ya está disponible! Usa !box para jugar.',
         'not_your_game': '¡Este no es tu juego! Usa !box para comenzar tu propio juego.',
         'resetbox_no_member': 'Por favor, menciona a un usuario para reiniciar el enfriamiento del juego de cajas.',
@@ -829,6 +831,7 @@ TRANSLATIONS = {
         'available_languages': 'Idiomas disponibles: {languages}',
         'invalid_language': '⚠️ Código de idioma inválido: "{code}". Usa pt, en, es, de, it, fr, pl',
         'language_updated': '✅ ¡Tu idioma ha sido cambiado a **{language}**!',
+        'specify_trades_amount': '⚠️ Por favor, especifica la cantidad de intercambios que deseas usar.\nEjemplo: `!usetrade 1`',
     },
     
     # Francês
@@ -950,7 +953,7 @@ TRANSLATIONS = {
     'not_your_button': 'Ce bouton n\'est pas pour vous!',
     'slot_already_available': 'Le slot est déjà disponible pour utilisation!',
     'slot_reminder_set': 'Prêt! Je vous préviendrai quand vous pourrez jouer à nouveau dans environ {minutes} minute(s).',
-    'slot_reminder_message': '⏰ **Rappel:** Le slot est à nouveau disponible! Utilisez la commande `!slot` pour tenter votre chance!',
+    'slot_reminder_message': '⏰ **Rappel:** Le slot est à nouveau disponible! Utilisez la commande `!slot`, pour tenter votre chance!',
     'slot_result_title': '🎰 Résultat du Slot',
     'slot_result_desc': '{user} a tourné la machine à sous!',
     'slot_machine': 'Machine à Sous',
@@ -1024,6 +1027,7 @@ TRANSLATIONS = {
     'available_languages': 'Langues disponibles: {languages}',
     'invalid_language': '⚠️ Code de langue invalide: "{code}". Utilisez pt, en, es, de, it, fr, pl',
     'language_updated': '✅ Votre langue a été changée pour **{language}**!',
+    'specify_trades_amount': '⚠️ Veuillez spécifier le nombre de trades à utiliser.\nExemple : `!usetrade 1`',
     },
 
     # Alemão
@@ -1150,8 +1154,8 @@ TRANSLATIONS = {
     # Slot-System
     'slot_cooldown_title': '🕒 Slot-Abklingzeit aktiv',
     'slot_cooldown_desc': 'Sie müssen noch **{minutes} Minuten und {seconds} Sekunden** warten, um wieder zu spielen.',
-    'slot_reminder_button': 'Mich erinnern, wenn verfügbar',
-    'not_your_button': 'Dieser Button ist nicht für Sie!',
+    'slot_reminder_button': 'Przypomnij mi, gdy będzie dostępne',
+    'not_your_button': 'Ten przycisk nie jest dla Ciebie!',
     'slot_already_available': 'Der Slot ist bereits verfügbar!',
     'slot_reminder_set': 'Fertig! Ich werde Sie benachrichtigen, wenn Sie in etwa {minutes} Minute(n) wieder spielen können.',
     'slot_reminder_message': '⏰ **Erinnerung:** Der Slot ist wieder verfügbar! Verwenden Sie den Befehl `!slot`, um Ihr Glück zu versuchen!',
@@ -1159,9 +1163,9 @@ TRANSLATIONS = {
     'slot_result_desc': '{user} hat den Slot gedreht!',
     'slot_machine': 'Spielautomat',
     'slot_result': 'Ergebnis',
-    'slot_jackpot': '🏆 JACKPOT! Alle Symbole gleich! Sie haben 3 Trades gewonnen!',
-    'slot_two_match': '🎉 Zwei gleiche Symbole! Sie haben 2 Trades gewonnen!',
-    'slot_no_match': '😢 Keine Kombination. Versuchen Sie es später erneut!',
+    'slot_jackpot': '🏆 JACKPOT! Wszystkie symbole są takie same! Wygrałeś 3 wymiany!',
+    'slot_two_match': '🎉 Dwa identyczne symbole! Wygrałeś 2 wymiany!',
+    'slot_no_match': '😢 Brak kombinacji. Spróbuj ponownie później!',
     'slot_prize': 'Preis',
     'slot_trades_won': 'Sie haben **{count}** Trades gewonnen!',
     'slot_total_trades': 'Gesamte Trades',
@@ -1228,6 +1232,7 @@ TRANSLATIONS = {
     'available_languages': 'Verfügbare Sprachen: {languages}',
     'invalid_language': '⚠️ Ungültiger Sprachcode: "{code}". Verwenden Sie de, en oder es.',
     'language_updated': '✅ Ihre Sprache wurde auf **{language}** geändert!',
+    'specify_trades_amount': '⚠️ Bitte gib die Anzahl der gewünschten Trades an.\nBeispiel: `!usetrade 1`',
     },
 
     # Italiano
@@ -1372,7 +1377,7 @@ TRANSLATIONS = {
     'slot_total_count': 'Ora hai **{count}** trades.',
     'resetslot_no_member': '⚠️ Devi menzionare un membro per resettare il cooldown dello slot.',
     'resetslot_success': '✅ Cooldown dello slot resettato per **{user}**.',
-    'resetslot_not_on_cooldown': '📭 **{user}** non è in cooldown per lo slot.',
+    'resetslot_not_on_cooldown': '📭 **{user}** n\'est pas en cooldown de slot.',
     'help_slot': 'Gioca alla slot machine per vincere trades (cooldown di 5 minuti).',
     'help_resetslot': 'Resetta il cooldown dello slot di un utente (admin).',
 
@@ -1432,6 +1437,7 @@ TRANSLATIONS = {
     'available_languages': 'Lingue disponibili: {languages}',
     'invalid_language': '⚠️ Codice lingua non valido: "{code}". Usa pt, en, es, de, it, fr, pl',
     'language_updated': '✅ La tua lingua è stata cambiata in **{language}**!',
+    'specify_trades_amount': '⚠️ Per favore, specifica il numero di trades da usare.\nEsempio: `!usetrade 1`',
     },
 
     # Polonês
@@ -1572,8 +1578,8 @@ TRANSLATIONS = {
     'slot_no_match': '😢 Brak kombinacji. Spróbuj ponownie później!',
     'slot_prize': 'Nagroda',
     'slot_trades_won': 'Wygrałeś **{count}** wymian(y)!',
-    'slot_total_trades': 'Łączna liczba wymian',
-    'slot_total_count': 'Masz teraz **{count}** wymian(y).',
+    'slot_total_trades': 'Gesamte Trades',
+    'slot_total_count': 'Sie haben jetzt **{count}** Trades.',
     'resetslot_no_member': '⚠️ Musisz oznaczyć członka, aby zresetować czas oczekiwania slotów.',
     'resetslot_success': '✅ Czas oczekiwania slotów dla **{user}** został zresetowany.',
     'resetslot_not_on_cooldown': '📭 **{user}** nie jest w czasie oczekiwania slotów.',
@@ -1636,6 +1642,7 @@ TRANSLATIONS = {
     'available_languages': 'Dostępne języki: {languages}',
     'invalid_language': '⚠️ Nieprawidłowy kod języka: "{code}". Użyj pt, en, es, de, it, fr, pl',
     'language_updated': '✅ Twój język został zmieniony na **{language}**!',
+    'specify_trades_amount': '⚠️ Podaj liczbę trade\'ów do użycia.\nPrzykład: `!usetrade 1`',
     },
 }
 
