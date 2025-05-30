@@ -36,6 +36,7 @@ class Database:
             self.guild_languages_collection = self.db['guild_languages']
             self.slot_cooldowns_collection = self.db['slot_cooldowns'] # Coleção para cooldowns de slot
             self.box_cooldowns_collection = self.db['box_cooldowns'] # Nova coleção para cooldowns de box
+            self.dice_cooldowns_collection = self.db['dice_cooldowns'] # Coleção para cooldowns de dado
             self.bets_collection = self.db['bets']
             self.bets_collection.create_index('bet_id', unique=True)
             self.giveaways_collection = self.db['giveaways']
@@ -49,6 +50,7 @@ class Database:
             self.guild_languages_collection.create_index('guild_id', unique=True)
             self.slot_cooldowns_collection.create_index('user_id', unique=True)
             self.box_cooldowns_collection.create_index('user_id', unique=True) # Novo índice para box
+            self.dice_cooldowns_collection.create_index('user_id', unique=True) # Índice para dado
             
             print("✅ Conexão com MongoDB estabelecida com sucesso")
             print("🔄 Ping ao servidor MongoDB bem-sucedido")
@@ -1035,4 +1037,35 @@ class Database:
 
     def remove_giveaway(self, giveaway_id):
         self.giveaways_collection.delete_one({'_id': giveaway_id})
+    
+    # ===============================================
+    # Operações para Cooldown de Dado
+    # ===============================================
+    def get_last_dice_time(self, user_id):
+        """Obtém o timestamp do último uso do dado por um usuário."""
+        if not self.is_connected():
+            return None
+        try:
+            result = self.dice_cooldowns_collection.find_one({'user_id': user_id})
+            return result['timestamp'] if result else None
+        except Exception as e:
+            print(f"❌ Erro ao obter último uso de dado do usuário {user_id}: {e}")
+            return None
+
+    def set_last_dice_time(self, user_id, timestamp=None):
+        """Define o timestamp do último uso do dado por um usuário."""
+        if not self.is_connected():
+            return False
+        if timestamp is None:
+            timestamp = datetime.datetime.now()
+        try:
+            self.dice_cooldowns_collection.update_one(
+                {'user_id': user_id},
+                {'$set': {'user_id': user_id, 'timestamp': timestamp}},
+                upsert=True
+            )
+            return True
+        except Exception as e:
+            print(f"❌ Erro ao definir último uso de dado do usuário {user_id}: {e}")
+            return False
         
