@@ -88,9 +88,6 @@ user_dice_reminders = {}
 # Dicionário para armazenar giveaways ativos
 active_giveaways = {}
 
-# Dicionário para armazenar jogos de adivinhação ativos
-active_guess_games = {}
-
 class GiveawayView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)

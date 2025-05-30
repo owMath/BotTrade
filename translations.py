@@ -160,7 +160,7 @@ TRANSLATIONS = {
         'resetslot_success': '✅ Cooldown de slot resetado para **{user}**.',
         'resetslot_not_on_cooldown': '📭 **{user}** não está em cooldown de slot.',
         'help_slot': 'Joga na slot machine para ganhar trades (cooldown de 5 minutos).',
-        'help_resetslot': 'Reseta o cooldown de slot de um usuário.',
+        'help_resetslot': 'Reseta o cooldown de slot de um usuário (admin).',
         
         # Comando abort
         'abort_no_code': 'Por favor, forneça o código do trade que deseja cancelar.',
@@ -287,19 +287,6 @@ TRANSLATIONS = {
         'invalid_language': '⚠️ Código de idioma inválido: "{code}". Use pt, en, es, de, it, fr, pl',
         'language_updated': '✅ Seu idioma foi alterado para **{language}**!',
         'specify_trades_amount': '⚠️ Por favor, especifique a quantidade de trades que deseja usar.\nExemplo: `!usetrade 1`',
-
-        # Guess The Number
-        'guess_wrong_channel': 'Este comando só pode ser usado no canal de Guess The Number!',
-        'guess_game_active': 'Já existe um jogo de adivinhação ativo neste canal!',
-        'guess_dm_error': 'Não foi possível enviar o número por DM. Verifique se suas DMs estão abertas!',
-        'guess_title': '🎯 Guess The Number!',
-        'guess_desc': 'Tente adivinhar o número entre **{min}** e **{max}**!\n\nPrêmio: **{trades} {prize}**\nO número foi enviado por DM para o staff.',
-        'guess_win_title': '🎉 Número Adivinhado!',
-        'guess_win_desc': 'Parabéns {user}! Você acertou o número **{number}**!\nVocê ganhou **{trades} {prize}**!',
-        'guess_win_dm': '🎉 Parabéns! Você ganhou **{trades} {prize}** no Guess The Number!',
-        'guess_hint': 'O número é {hint} que {guess}!',
-        'guess_range_error': 'O número deve estar entre {min} e {max}!',
-        'help_guess': 'Inicia um jogo de adivinhação de número. Exemplo: !guess 1 100 5 Trades',
     },
     
     # Inglês
@@ -573,19 +560,6 @@ TRANSLATIONS = {
         'invalid_language': '⚠️ Invalid language code: "{code}". Use pt, en, es, de, it, fr, pl',
         'language_updated': '✅ Your language has been changed to **{language}**!',
         'specify_trades_amount': '⚠️ Please specify the number of trades you want to use.\nExample: `!usetrade 1`',
-
-        # Guess The Number
-        'guess_wrong_channel': 'This command can only be used in the Guess The Number channel!',
-        'guess_game_active': 'There is already an active guessing game in this channel!',
-        'guess_dm_error': 'Unable to send the number via DM. Please check if your DMs are open!',
-        'guess_title': '🎯 Guess The Number!',
-        'guess_desc': 'Try to guess the number between **{min}** and **{max}**!\n\nPrize: **{trades} {prize}**\nThe number was sent via DM to the staff.',
-        'guess_win_title': '🎉 Number Guessed!',
-        'guess_win_desc': 'Congratulations {user}! You guessed the number **{number}**!\nYou won **{trades} {prize}**!',
-        'guess_win_dm': '🎉 Parabéns! Você ganhou **{trades} {prize}** no Guess The Number!',
-        'guess_hint': 'The number is {hint} that {guess}!',
-        'guess_range_error': 'The number must be between {min} and {max}!',
-        'help_guess': 'Starts a guessing game. Example: !guess 1 100 5 Trades',
     },
     
     # Espanhol
@@ -726,7 +700,7 @@ TRANSLATIONS = {
         'slot_prize': 'Premio',
         'slot_trades_won': '¡Ganaste **{count}** trades!',
         'slot_total_trades': 'Total de Trades',
-        'slot_total_count': 'Sie haben jetzt **{count}** Trades.',
+        'slot_total_count': 'Ahora tienes **{count}** trades.',
         'resetslot_no_member': '⚠️ Debes mencionar a un miembro para reiniciar su enfriamiento de tragamonedas.',
         'resetslot_success': '✅ Enfriamiento de tragamonedas reiniciado para **{user}**.',
         'resetslot_not_on_cooldown': '📭 **{user}** no está en enfriamiento de tragamonedas.',
@@ -858,19 +832,6 @@ TRANSLATIONS = {
         'invalid_language': '⚠️ Código de idioma inválido: "{code}". Usa pt, en, es, de, it, fr, pl',
         'language_updated': '✅ ¡Tu idioma ha sido cambiado a **{language}**!',
         'specify_trades_amount': '⚠️ Por favor, especifica la cantidad de intercambios que deseas usar.\nEjemplo: `!usetrade 1`',
-
-        # Guess The Number
-        'guess_wrong_channel': 'Este comando solo se puede usar en el canal de Guess The Number!',
-        'guess_game_active': 'Ya existe un juego de adivinanza activo en este canal!',
-        'guess_dm_error': 'No se pudo enviar el número por DM. Por favor, comprueba si tus DMs están abiertas!',
-        'guess_title': '🎯 Guess The Number!',
-        'guess_desc': 'Intenta adivinar el número entre **{min}** y **{max}**!\n\nPremio: **{trades} {prize}**\nEl número se envió por DM al staff.',
-        'guess_win_title': '🎉 ¡Número Adivinado!',
-        'guess_win_desc': '¡Felicitaciones {user}! ¡Acertaste el número **{number}**!\n¡Ganaste **{trades} {prize}**!',
-        'guess_win_dm': '🎉 ¡Felicitaciones! ¡Ganaste **{trades} {prize}** en Guess The Number!\nEl número era: **{number}**',
-        'guess_hint': 'El número es {hint} que {guess}!',
-        'guess_range_error': '¡El número debe estar entre {min} y {max}!',
-        'help_guess': 'Inicia un juego de adivinanza de número. Ejemplo: !guess 1 100 5 Trades',
     },
     
     # Francês
@@ -1067,19 +1028,6 @@ TRANSLATIONS = {
     'invalid_language': '⚠️ Code de langue invalide: "{code}". Utilisez pt, en, es, de, it, fr, pl',
     'language_updated': '✅ Votre langue a été changée pour **{language}**!',
     'specify_trades_amount': '⚠️ Veuillez spécifier le nombre de trades à utiliser.\nExemple : `!usetrade 1`',
-
-    # Guess The Number
-    'guess_wrong_channel': 'Cette commande ne peut être utilisée que dans le canal Guess The Number!',
-    'guess_game_active': 'Il y a déjà un jeu de devinette actif dans ce canal!',
-    'guess_dm_error': 'Impossible d\'envoyer le numéro par DM. Veuillez vérifier si vos DMs sont ouvertes!',
-    'guess_title': '🎯 Guess The Number!',
-    'guess_desc': 'Essayez de deviner le nombre entre **{min}** et **{max}**!\n\nPrix: **{trades} {prize}**\nLe numéro a été envoyé par DM au staff.',
-    'guess_win_title': '🎉 Nombre Deviné!',
-    'guess_win_desc': 'Félicitations {user}! Vous avez deviné le nombre!\nVous avez gagné **{trades} {prize}**!',
-    'guess_win_dm': '🎉 Félicitations! Vous avez gagné **{trades} {prize}** dans Guess The Number!\nLe nombre était: **{number}**',
-    'guess_hint': 'Le nombre est {hint} que {guess}!',
-    'guess_range_error': 'Le nombre doit être entre {min} et {max}!',
-    'help_guess': 'Démarre un jeu de devinette. Exemple: !guess 1 100 5 Trades',
     },
 
     # Alemão
@@ -1285,19 +1233,6 @@ TRANSLATIONS = {
     'invalid_language': '⚠️ Ungültiger Sprachcode: "{code}". Verwenden Sie de, en oder es.',
     'language_updated': '✅ Ihre Sprache wurde auf **{language}** geändert!',
     'specify_trades_amount': '⚠️ Bitte gib die Anzahl der gewünschten Trades an.\nBeispiel: `!usetrade 1`',
-
-    # Guess The Number
-    'guess_wrong_channel': 'Dieser Befehl kann nur im Guess The Number-Kanal verwendet werden!',
-    'guess_game_active': 'Es gibt bereits ein aktives Ratespiel in diesem Kanal!',
-    'guess_dm_error': 'Nummer konnte nicht per DM gesendet werden. Bitte überprüfen Sie, ob Ihre DMs geöffnet sind!',
-    'guess_title': '🎯 Guess The Number!',
-    'guess_desc': 'Versuchen Sie, die Zahl zwischen **{min}** und **{max}** zu erraten!\n\nPreis: **{trades} {prize}**\nDie Nummer wurde per DM an das Team gesendet.',
-    'guess_win_title': '🎉 Zahl Erraten!',
-    'guess_win_desc': 'Glückwunsch {user}! Sie haben die Zahl erraten!\nSie haben **{trades} {prize}** gewonnen!',
-    'guess_win_dm': '🎉 Glückwunsch! Sie haben **{trades} {prize}** in Guess The Number gewonnen!\nDie Zahl war: **{number}**',
-    'guess_hint': 'Die Zahl ist {hint} als {guess}!',
-    'guess_range_error': 'Die Zahl muss zwischen {min} und {max} liegen!',
-    'help_guess': 'Startet ein Ratespiel. Beispiel: !guess 1 100 5 Trades',
     },
 
     # Italiano
@@ -1571,7 +1506,7 @@ TRANSLATIONS = {
     
     # Giveaway
     'giveaway_title': '🎉 LOSOWANIE TRADEÓW! 🎉',
-    'giveaway_desc': 'Nagroda: **{prize}**\nIlość: **{trades} trade(ów)**\nKliknij 🎉, aby wziąć udział!\n\nCzas trwania: **{duration}** minut\nGanadores: **{winners}**',
+    'giveaway_desc': 'Nagroda: **{prize}**\nIlość: **{trades} trade(ów)**\nKliknij 🎉, aby wziąć udział!\n\nCzas trwania: **{duration}** minut\nZwycięzcy: **{winners}**',
     'giveaway_footer': 'Rozpoczęte przez {admin}',
     'giveaway_end_title': '🎊 LOSOWANIE ZAKOŃCZONE! 🎊',
     'giveaway_end_desc': 'Zwycięzca/y: {winners}\nNagroda: **{prize}**\nKażdy otrzymuje **{trades} trade(ów)**!',
@@ -1708,19 +1643,6 @@ TRANSLATIONS = {
     'invalid_language': '⚠️ Nieprawidłowy kod języka: "{code}". Użyj pt, en, es, de, it, fr, pl',
     'language_updated': '✅ Twój język został zmieniony na **{language}**!',
     'specify_trades_amount': '⚠️ Podaj liczbę trade\'ów do użycia.\nPrzykład: `!usetrade 1`',
-
-    # Guess The Number
-    'guess_wrong_channel': 'Ta komenda może być używana tylko na kanale Guess The Number!',
-    'guess_game_active': 'W tym kanale jest już aktywna gra zgadywania!',
-    'guess_dm_error': 'Nie można wysłać numeru przez DM. Sprawdź, czy masz otwarte DM!',
-    'guess_title': '🎯 Guess The Number!',
-    'guess_desc': 'Spróbuj zgadnąć liczbę między **{min}** a **{max}**!\n\nNagroda: **{trades} {prize}**\nNumer został wysłany przez DM do obsługi.',
-    'guess_win_title': '🎉 Liczba Zgadnięta!',
-    'guess_win_desc': 'Gratulacje {user}! Zgadłeś liczbę!\nWygrałeś **{trades} {prize}**!',
-    'guess_win_dm': '🎉 Gratulacje! Wygrałeś **{trades} {prize}** w Guess The Number!\nLiczba to: **{number}**',
-    'guess_hint': 'Liczba jest {hint} niż {guess}!',
-    'guess_range_error': 'Liczba musi być między {min} a {max}!',
-    'help_guess': 'Rozpoczyna grę zgadywania. Przykład: !guess 1 100 5 Trades',
     },
 }
 
