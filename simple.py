@@ -2333,6 +2333,12 @@ async def help_command(ctx):
             inline=False
         )
         
+        embed.add_field(
+            name="!reset-all", 
+            value="Reseta a quantidade de trades de todos os usuários para 0 (apenas admin).", 
+            inline=False
+        )
+        
         await ctx.send(embed=embed)
     except Exception as e:
         user_id = ctx.author.id
@@ -2441,6 +2447,12 @@ async def adminhelp_command(ctx):
         embed.add_field(
             name="!resetdice [@usuário]", 
             value=t('help_resetdice', lang), 
+            inline=False
+        )
+        
+        embed.add_field(
+            name="!reset-all", 
+            value="Reseta a quantidade de trades de todos os usuários para 0 (apenas admin).", 
             inline=False
         )
         
@@ -2749,10 +2761,11 @@ async def on_ready():
         if db.is_connected():
             try:
                 bets = db.bets_collection.find({'status': {'$in': ['open', 'locked']}})
-                for bet in bets:
+                bets_list = list(bets)  # Converter para lista para poder contar
+                for bet in bets_list:
                     view = BetVoteView(bet['bet_id'], bet['options'], bet['status'] != 'open')
                     bot.add_view(view)
-                print(f"Views de apostas persistentes registradas: {bets.count()} bets.")
+                print(f"Views de apostas persistentes registradas: {len(bets_list)} bets.")
             except Exception as e:
                 print(f"Erro ao registrar views persistentes: {e}")
             # --- REGISTRAR VIEWS PERSISTENTES DOS GIVEAWAYS ---
@@ -2988,10 +3001,74 @@ async def resetdice_command(ctx, member: discord.Member):
         await log_error(f"Erro no comando resetdice: {e}")
         await ctx.send(t('command_error', lang))
 
-# Dicionário para cooldown do dado
-user_dice_cooldowns = {}
-# Dicionário para lembretes de dado
-user_dice_reminders = {}
+@bot.command(name='reset-all')
+@commands.has_permissions(administrator=True)
+async def resetall_command(ctx):
+    """Comando para resetar a quantidade de trades de todos os usuários para 0"""
+    lang = get_user_language(ctx.author.id)
+    try:
+        # Verificar se o banco de dados está conectado
+        if not db.is_connected():
+            embed = discord.Embed(
+                title="🔄 Reset Global de Trades",
+                description="❌ Erro ao conectar com o banco de dados. Reset não foi realizado.",
+                color=0xff0000
+            )
+            await ctx.send(embed=embed)
+            return
+        
+        # Resetar todos os trades em memória
+        user_trades.clear()
+        
+        # Resetar todos os trades no MongoDB
+        all_users = db.get_all_user_trades()
+        reset_count = len(all_users)
+        
+        # Atualizar todos os usuários para 0 trades no banco
+        for user_id in all_users:
+            db.set_user_trades(user_id, 0)
+        
+        # Criar embed de sucesso
+        embed = discord.Embed(
+            title="🔄 Reset Global de Trades",
+            description="✅ Reset global realizado com sucesso! Todos os usuários agora têm 0 trades.",
+            color=0x00ff00
+        )
+        embed.add_field(
+            name="Usuários afetados",
+            value=f"{reset_count}",
+            inline=False
+        )
+        
+        await ctx.send(embed=embed)
+        
+    except Exception as e:
+        await log_error(f"Erro no comando reset-all: {e}")
+        embed = discord.Embed(
+            title="🔄 Reset Global de Trades",
+            description="❌ Erro ao conectar com o banco de dados. Reset não foi realizado.",
+            color=0xff0000
+        )
+        await ctx.send(embed=embed)
+
+@resetall_command.error
+async def resetall_error(ctx, error):
+    try:
+        # Obter idioma do usuário
+        lang = get_user_language(ctx.author.id)
+        
+        if isinstance(error, commands.MissingPermissions):
+            await ctx.send(t('admin_only', lang))
+        else:
+            await log_error(f"Erro em comando reset-all: {error}")
+            embed = discord.Embed(
+                title="🔄 Reset Global de Trades",
+                description="❌ Erro ao conectar com o banco de dados. Reset não foi realizado.",
+                color=0xff0000
+            )
+            await ctx.send(embed=embed)
+    except Exception as e:
+        await log_error(f"Erro ao tratar erro do comando reset-all: {e}")
 
 class DiceReminderButton(discord.ui.Button):
     def __init__(self, user_id, lang, remind_time):
