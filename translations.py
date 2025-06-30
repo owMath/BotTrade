@@ -46,6 +46,8 @@ TRANSLATIONS = {
         'help_givetrade': '!givetrade = dar trade para alguém.',
         'help_abort': '!abort = cancelar um code.',
 
+        'reminder_set': 'Você receberá um lembrete em {minutes} minutos quando puder jogar novamente.',
+
         'bet_vote_success': 'Voto registrado com sucesso!',
         'bet_already_voted': 'Você já votou nesta opção.',
         'bet_closed': 'A aposta não está aberta para votação.',
@@ -70,7 +72,7 @@ TRANSLATIONS = {
         'dice_cooldown_desc': 'Você precisa esperar mais **{minutes} minutos e {seconds} segundos** para jogar novamente.',
         'dice_reminder_button': 'Lembrar quando disponível',
         'dice_reminder_set': 'Você receberá um lembrete em {minutes} minutos quando puder jogar novamente.',
-        'dice_reminder_message': '🎲 O minigame do dado está disponível novamente! Use !dice para jogar.',
+        'dice_reminder_message': '⏰ O minigame do dado está disponível novamente! Use `!dice` para jogar.',
         'dice_already_available': 'O minigame já está disponível! Use !dice para jogar.',
 
         # Box Game
@@ -135,7 +137,7 @@ TRANSLATIONS = {
         'not_your_button': 'Este botão não é para você!',
         'slot_already_available': 'O slot já está disponível para uso!',
         'slot_reminder_set': 'Pronto! Vou te avisar quando puder jogar novamente em aproximadamente {minutes} minuto(s).',
-        'slot_reminder_message': '⏰ **Lembrete:** O slot já está disponível para jogar novamente! Use o comando `!slot` para tentar a sorte!',
+        'slot_reminder_message': '⏰ O slot já está disponível para jogar novamente! Use o comando `!slot` para tentar a sorte!',
         'slot_success': '✅ Lembrete configurado com sucesso! Você receberá uma notificação quando o slot estiver disponível novamente.',
         'slot_result_title': '🎰 Resultado do Slot',
         'slot_result_desc': '{user} girou a slot machine!',
@@ -321,6 +323,8 @@ TRANSLATIONS = {
         'check_trade_timestamp': 'Last claim: {time}',
         'help_checktrademember': 'Checks how many trades a user has and shows information about their last daily claim.',
     
+        'reminder_set': 'You will receive a reminder in {minutes} minutes when you can play again.',
+
         'giveaway_new_title': '🎉 New Giveaway!',
         'giveaway_new_desc': 'Prize: {prize}\n\nWinners: {winners}\nDuration: {duration} minutes\n\nClick the button below to participate!\n{description}',
         'giveaway_footer_id': 'ID: {id}',
@@ -362,7 +366,7 @@ TRANSLATIONS = {
         'dice_cooldown_desc': 'You need to wait **{minutes} minutes and {seconds} seconds** to play again.',
         'dice_reminder_button': 'Remind me when available',
         'dice_reminder_set': 'You will receive a reminder in {minutes} minutes when you can play again.',
-        'dice_reminder_message': '🎲 The dice minigame is available again! Use !dice to play.',
+        'dice_reminder_message': '⏰ The dice minigame is available again! Use `!dice` to play.',
         'dice_already_available': 'The minigame is already available! Use !dice to play.',
 
         # Box Game
@@ -384,7 +388,7 @@ TRANSLATIONS = {
         'box_cooldown_desc': 'You need to wait {minutes} minutes and {seconds} seconds to play again.',
         'box_reminder_button': 'Remind me when available',
         'box_reminder_set': 'You will receive a reminder in {minutes} minutes when you can play again.',
-        'box_reminder_message': '🎮 The box game is available again! Use !box to play.',
+        'box_reminder_message': '⏰ The box game is available again! Use `!box` to play.',
         'box_already_available': 'The game is already available! Use !box to play.',
         'not_your_game': 'This is not your game! Use !box to start your own game.',
         'resetbox_no_member': 'Please mention a user to reset the box game cooldown.',
@@ -587,6 +591,8 @@ TRANSLATIONS = {
         'check_trade_timestamp': 'Último claim: {time}',
         'help_checktrademember': 'Verifica cuántos trades tiene un usuario y muestra información sobre su último claim diario.',
 
+        'reminder_set': 'Recibirás un recordatorio en {minutes} minutos cuando puedas jugar de nuevo.',
+
         'giveaway_new_title': '🎉 ¡Nuevo Sorteo!',
         'giveaway_new_desc': 'Premio: {prize}\n\nGanadores: {winners}\nDuración: {duration} minutos\n\n¡Haz clic en el botón de abajo para participar!\n{description}',
         'giveaway_footer_id': 'ID: {id}',
@@ -627,7 +633,7 @@ TRANSLATIONS = {
         'dice_cooldown_desc': 'Necesitas esperar **{minutes} minutos y {seconds} segundos** para jugar de nuevo.',
         'dice_reminder_button': 'Recordarme cuando esté disponible',
         'dice_reminder_set': 'Recibirás un recordatorio en {minutes} minutos cuando puedas jugar de nuevo.',
-        'dice_reminder_message': '🎲 El minijuego de dados está disponible de nuevo! Usa !dice para jugar.',
+        'dice_reminder_message': '⏰ El minijuego de dados está disponible de nuevo! Usa `!dice` para jugar.',
         'dice_already_available': '¡El minijuego ya está disponible! Usa !dice para jugar.',
 
         # Box Game
@@ -649,7 +655,7 @@ TRANSLATIONS = {
         'box_cooldown_desc': 'Debes esperar {minutes} minutos y {seconds} segundos para jugar de nuevo.',
         'box_reminder_button': 'Recordar cuando esté disponible',
         'box_reminder_set': 'Recibirás un recordatorio en {minutes} minutos cuando puedas jugar de nuevo.',
-        'box_reminder_message': '🎮 ¡El juego de las cajas está disponible de nuevo! Usa !box para jugar.',
+        'box_reminder_message': '⏰ ¡El juego de las cajas está disponible de nuevo! Usa `!box` para jugar.',
         'box_already_available': '¡El juego ya está disponible! Usa !box para jugar.',
         'not_your_game': '¡Este no es tu juego! Usa !box para iniciar tu propio juego.',
         'resetbox_no_member': 'Por favor, menciona a un usuario para reiniciar el enfriamiento del juego de cajas.',
@@ -852,6 +858,8 @@ TRANSLATIONS = {
     'check_trade_timestamp': 'Dernière réclamation: {time}',
     'help_checktrademember': 'Vérifie le nombre de trades d\'un utilisateur et affiche des informations sur sa dernière réclamation quotidienne.',
 
+    'reminder_set': 'Vous recevrez un rappel dans {minutes} minutes lorsque vous pourrez rejouer.',
+
     'giveaway_new_title': '🎉 Nouveau Giveaway !',
     'giveaway_new_desc': 'Prix : {prize}\n\nGagnants : {winners}\nDurée : {duration} minutes\n\nCliquez sur le bouton ci-dessous pour participer !\n{description}',
     'giveaway_footer_id': 'ID : {id}',
@@ -893,7 +901,7 @@ TRANSLATIONS = {
     'dice_cooldown_desc': 'Vous devez attendre encore **{minutes} minutes et {seconds} secondes** pour rejouer.',
     'dice_reminder_button': 'Me rappeler quand disponible',
     'dice_reminder_set': 'Vous recevrez un rappel dans {minutes} minutes quand vous pourrez rejouer.',
-    'dice_reminder_message': '🎲 Le mini-jeu de dés est à nouveau disponible ! Utilisez !dice pour jouer.',
+    'dice_reminder_message': '⏰ Le mini-jeu de dés est à nouveau disponible ! Utilisez `!dice` pour jouer.',
     'dice_already_available': 'Le mini-jeu est déjà disponible ! Utilisez !dice pour jouer.',
 
     # Box Game
@@ -915,7 +923,7 @@ TRANSLATIONS = {
     'box_cooldown_desc': 'Vous devez attendre {minutes} minutes et {seconds} secondes pour rejouer.',
     'box_reminder_button': 'Me rappeler quand disponible',
     'box_reminder_set': 'Vous recevrez un rappel dans {minutes} minutes lorsque vous pourrez rejouer.',
-    'box_reminder_message': '🎮 Le jeu des boîtes est à nouveau disponible ! Utilisez !box pour jouer.',
+    'box_reminder_message': '⏰ Le jeu des boîtes est à nouveau disponible ! Utilisez `!box` pour jouer.',
     'box_already_available': 'Le jeu est déjà disponible ! Utilisez !box pour jouer.',
     'not_your_game': 'Ce n\'est pas votre jeu ! Utilisez !box pour démarrer votre propre jeu.',
     'resetbox_no_member': 'Veuillez mentionner un utilisateur pour réinitialiser le cooldown du jeu des boîtes.',
@@ -1050,6 +1058,8 @@ TRANSLATIONS = {
     'check_trade_timestamp': 'Letzter Claim: {time}',
     'help_checktrademember': 'Überprüft die Anzahl der Trades eines Benutzers und zeigt Informationen über seinen letzten täglichen Claim an.',
 
+    'reminder_set': 'Du erhältst in {minutes} Minuten eine Erinnerung, wenn du wieder spielen kannst.',
+
     'giveaway_new_title': '🎉 Neues Giveaway!',
     'giveaway_new_desc': 'Preis: {prize}\n\nGewinner: {winners}\nDauer: {duration} Minuten\n\nKlicke unten auf den Button, um teilzunehmen!\n{description}',
     'giveaway_footer_id': 'ID: {id}',
@@ -1101,7 +1111,7 @@ TRANSLATIONS = {
     'dice_cooldown_desc': 'Du musst noch **{minutes} Minuten und {seconds} Sekunden** warten, um erneut zu spielen.',
     'dice_reminder_button': 'Mich erinnern, wenn verfügbar',
     'dice_reminder_set': 'Du erhältst in {minutes} Minuten eine Erinnerung, wenn du wieder spielen kannst.',
-    'dice_reminder_message': '🎲 Das Würfel-Minispiel ist wieder verfügbar! Benutze !dice zum Spielen.',
+    'dice_reminder_message': '⏰ Das Würfel-Minispiel ist wieder verfügbar! Benutze `!dice` zum Spielen.',
     'dice_already_available': 'Das Minispiel ist bereits verfügbar! Benutze !dice zum Spielen.',
 
     # Box Game
@@ -1123,7 +1133,7 @@ TRANSLATIONS = {
     'box_cooldown_desc': 'Du musst {minutes} Minuten und {seconds} Sekunden warten, um erneut zu spielen.',
     'box_reminder_button': 'Erinnern, wenn verfügbar',
     'box_reminder_set': 'Du erhältst in {minutes} Minuten eine Erinnerung, wenn du erneut spielen kannst.',
-    'box_reminder_message': '🎮 Das Boxenspiel ist wieder verfügbar! Benutze !box zum Spielen.',
+    'box_reminder_message': '⏰ Das Boxenspiel ist wieder verfügbar! Benutze `!box` zum Spielen.',
     'box_already_available': 'Das Spiel ist bereits verfügbar! Benutze !box zum Spielen.',
     'not_your_game': 'Das ist nicht dein Spiel! Benutze !box, um dein eigenes Spiel zu starten.',
     'resetbox_no_member': 'Bitte erwähnen Sie einen Benutzer, um die Abklingzeit des Kisten-Spiels zurückzusetzen.',
@@ -1258,6 +1268,8 @@ TRANSLATIONS = {
     'check_trade_timestamp': 'Ultimo claim: {time}',
     'help_checktrademember': 'Verifica il numero di trades di un utente e mostra informazioni sul suo ultimo claim giornaliero.',
 
+    'reminder_set': 'Riceverai un promemoria tra {minutes} minuti quando potrai giocare di nuovo.',
+
     'giveaway_new_title': '🎉 Nuovo Giveaway!',
     'giveaway_new_desc': 'Premio: {prize}\n\nVincitori: {winners}\nDurata: {duration} minuti\n\nClicca sul pulsante qui sotto per partecipare!\n{description}',
     'giveaway_footer_id': 'ID: {id}',
@@ -1309,7 +1321,7 @@ TRANSLATIONS = {
     'dice_cooldown_desc': 'Devi aspettare ancora **{minutes} minuti e {seconds} secondi** per giocare di nuovo.',
     'dice_reminder_button': 'Ricordami quando disponibile',
     'dice_reminder_set': 'Riceverai un promemoria tra {minutes} minuti quando potrai giocare di nuovo.',
-    'dice_reminder_message': '🎲 Il minigioco dei dadi è di nuovo disponibile! Usa !dice per giocare.',
+    'dice_reminder_message': '⏰ Il minigioco dei dadi è di nuovo disponibile! Usa `!dice` per giocare.',
     'dice_already_available': 'Il minigioco è già disponibile! Usa !dice per giocare.',
 
     # Box Game
@@ -1331,7 +1343,7 @@ TRANSLATIONS = {
     'box_cooldown_desc': 'Devi aspettare {minutes} minuti e {seconds} secondi per giocare di nuovo.',
     'box_reminder_button': 'Ricordami quando disponibile',
     'box_reminder_set': 'Riceverai un promemoria tra {minutes} minuti quando potrai giocare di nuovo.',
-    'box_reminder_message': '🎮 Il gioco delle scatole è di nuovo disponibile! Usa !box per giocare.',
+    'box_reminder_message': '⏰ Il gioco delle scatole è di nuovo disponibile! Usa `!box` per giocare.',
     'box_already_available': 'Il gioco è già disponibile! Usa !box per giocare.',
     'not_your_game': 'Questo non è il tuo gioco! Usa !box per iniziare il tuo gioco.',
     'resetbox_no_member': 'Per favore, menziona un utente per resettare il cooldown del gioco delle scatole.',
@@ -1466,6 +1478,8 @@ TRANSLATIONS = {
     'check_trade_timestamp': 'Ostatnie odebranie: {time}',
     'help_checktrademember': 'Sprawdza liczbę wymian użytkownika i pokazuje informacje o jego ostatnim dziennym odebraniu.',
 
+    'reminder_set': 'Otrzymasz przypomnienie za {minutes} minut, gdy będziesz mógł zagrać ponownie.',
+
     'bet_vote_success': 'Głos został pomyślnie zarejestrowany!',
     'bet_already_voted': 'Już zagłosowałeś na tę opcję.',
     'bet_closed': 'Zakład nie jest otwarty do głosowania.',
@@ -1517,7 +1531,7 @@ TRANSLATIONS = {
     'dice_cooldown_desc': 'Musisz poczekać jeszcze **{minutes} minut i {seconds} sekund**, aby zagrać ponownie.',
     'dice_reminder_button': 'Przypomnij mi, gdy będzie dostępne',
     'dice_reminder_set': 'Otrzymasz przypomnienie za {minutes} minut, gdy będziesz mógł zagrać ponownie.',
-    'dice_reminder_message': '🎲 Minigra z kośćmi jest ponownie dostępna! Użyj !dice, aby zagrać.',
+    'dice_reminder_message': '⏰ Minigra z kośćmi jest ponownie dostępna! Użyj `!dice`, aby zagrać.',
     'dice_already_available': 'Minigra jest już dostępna! Użyj !dice, aby zagrać.',
 
     # Gra w Pudełka
@@ -1539,7 +1553,7 @@ TRANSLATIONS = {
     'box_cooldown_desc': 'Musisz poczekać {minutes} minut i {seconds} sekund, aby zagrać ponownie.',
     'box_reminder_button': 'Przypomnij, gdy dostępne',
     'box_reminder_set': 'Otrzymasz przypomnienie za {minutes} minut, gdy będziesz mógł zagrać ponownie.',
-    'box_reminder_message': '🎮 Gra w skrzynki jest ponownie dostępna! Użyj !box, aby zagrać.',
+    'box_reminder_message': '⏰ Gra w skrzynki jest ponownie dostępna! Użyj `!box`, aby zagrać.',
     'box_already_available': 'Gra jest już dostępna! Użyj !box, aby zagrać.',
     'not_your_game': 'To nie jest twoja gra! Użyj !box, aby rozpocząć własną grę.',
     'resetbox_no_member': 'Proszę oznaczyć użytkownika, aby zresetować czas oczekiwania gry w pudełka.',
