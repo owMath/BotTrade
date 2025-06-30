@@ -386,6 +386,31 @@ class Database:
             print(f"❌ Erro ao definir trade ativo {code}: {e}")
             return False
     
+    def add_active_trade(self, code, user_id, start_time, expire_time):
+        """Adiciona um novo trade ativo ao banco de dados."""
+        if not self.is_connected():
+            return False
+            
+        try:
+            trade_info = {
+                'code': code,
+                'user_id': user_id,
+                'start_time': start_time,
+                'expire_time': expire_time,
+                'timestamp': start_time,
+                'status': 'active'
+            }
+            
+            self.active_trades_collection.update_one(
+                {'code': code},
+                {'$set': trade_info},
+                upsert=True
+            )
+            return True
+        except Exception as e:
+            print(f"❌ Erro ao adicionar trade ativo {code}: {e}")
+            return False
+    
     def update_active_trade_status(self, code, status, processing_time=None):
         """Atualiza o status de um trade ativo e opcionalmente o tempo de processamento."""
         if not self.is_connected():
