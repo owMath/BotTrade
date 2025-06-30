@@ -2303,6 +2303,38 @@ async def cleanup_expired_trades():
             
         await asyncio.sleep(60)  # Verificar a cada minuto
 
+async def cleanup_expired_views():
+    """Limpa views expiradas para evitar acúmulo"""
+    try:
+        if db.is_connected():
+            # Limpar giveaways expirados
+            current_time = datetime.datetime.now()
+            expired_giveaways = []
+            
+            for giveaway_id, giveaway_info in active_giveaways.items():
+                end_time = giveaway_info.get('end_time')
+                if isinstance(end_time, str):
+                    try:
+                        end_time = datetime.datetime.fromisoformat(end_time)
+                    except:
+                        continue
+                
+                if end_time and end_time <= current_time:
+                    expired_giveaways.append(giveaway_id)
+            
+            # Remover giveaways expirados
+            for giveaway_id in expired_giveaways:
+                del active_giveaways[giveaway_id]
+                print(f"🧹 Giveaway expirado removido: {giveaway_id}")
+            
+            # Limpar apostas antigas (mais de 7 dias)
+            week_ago = current_time - datetime.timedelta(days=7)
+            # Aqui você pode adicionar lógica para limpar apostas antigas do banco
+            
+        print(f"🧹 Limpeza de views concluída. {len(expired_giveaways)} giveaways expirados removidos.")
+    except Exception as e:
+        print(f"❌ Erro na limpeza de views: {e}")
+
 @bot.event
 async def on_ready():
     """Evento disparado quando o bot está pronto"""
@@ -2314,7 +2346,6 @@ async def on_ready():
         load_data_from_mongodb()
         bot.loop.create_task(sync_data_to_mongodb())
         bot.loop.create_task(cleanup_expired_trades())
-        bot.loop.create_task(cleanup_expired_views())  # Adicionar limpeza de views
         # --- REGISTRAR VIEWS PERSISTENTES DAS APOSTAS ---
         if db.is_connected():
             try:
@@ -3199,35 +3230,3 @@ async def on_command_error(ctx, error):
     else:
         await log_error(f"Erro em comando: {error}")
         await ctx.send(t('command_error', lang))
-
-async def cleanup_expired_views():
-    """Limpa views expiradas para evitar acúmulo"""
-    try:
-        if db.is_connected():
-            # Limpar giveaways expirados
-            current_time = datetime.datetime.now()
-            expired_giveaways = []
-            
-            for giveaway_id, giveaway_info in active_giveaways.items():
-                end_time = giveaway_info.get('end_time')
-                if isinstance(end_time, str):
-                    try:
-                        end_time = datetime.datetime.fromisoformat(end_time)
-                    except:
-                        continue
-                
-                if end_time and end_time <= current_time:
-                    expired_giveaways.append(giveaway_id)
-            
-            # Remover giveaways expirados
-            for giveaway_id in expired_giveaways:
-                del active_giveaways[giveaway_id]
-                print(f"🧹 Giveaway expirado removido: {giveaway_id}")
-            
-            # Limpar apostas antigas (mais de 7 dias)
-            week_ago = current_time - datetime.timedelta(days=7)
-            # Aqui você pode adicionar lógica para limpar apostas antigas do banco
-            
-        print(f"🧹 Limpeza de views concluída. {len(expired_giveaways)} giveaways expirados removidos.")
-    except Exception as e:
-        print(f"❌ Erro na limpeza de views: {e}")
