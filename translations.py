@@ -63,7 +63,7 @@ TRANSLATIONS = {
         'dice_win_3': '🎉 Parabéns! Você tirou 12 e ganhou **2 trades**!',  # Era 3 trades
         'dice_win_2': 'Muito bom! Você tirou 11 e ganhou **2 trades**!',   # Era 10 ou 11, agora só 11
         'dice_win_1': 'Você tirou 10 ou 7 e ganhou **1 trade**!',          # Era 7-9, agora só 10 e 7
-        'dice_no_win': 'Não foi dessa vez! A soma foi menor que 7, nenhum trade ganho.',
+        'dice_no_win': 'Não foi dessa vez! Tente novamente na próxima jogada.',
         'dice_total_trades': 'Total de Trades',
         'dice_total_count': 'Agora você tem **{count}** trades.',
         'dice_cooldown_title': '⏳ Cooldown do Dado Ativo',
@@ -351,7 +351,7 @@ TRANSLATIONS = {
         'dice_win_3': '🎉 Congratulations! You rolled 12 and won **2 trades**!',  # Era 3 trades
         'dice_win_2': 'Great! You rolled 11 and won **2 trades**!',               # Era 10 or 11, agora só 11
         'dice_win_1': 'You rolled 10 or 7 and won **1 trade**!',                  # Era 7-9, agora só 10 e 7
-        'dice_no_win': 'Not this time! The sum was less than 7, no trades won.',
+        'dice_no_win': 'Not this time! Try again next time.',
         'dice_total_trades': 'Total Trades',
         'dice_total_count': 'You now have **{count}** trades.',
         'dice_cooldown_title': '⏳ Dice Cooldown Active',
@@ -612,7 +612,7 @@ TRANSLATIONS = {
         'dice_win_3': '🎉 ¡Felicidades! Sacaste 12 y ganaste **2 trades**!',      # Era 3 trades
         'dice_win_2': '¡Muy bien! Sacaste 11 y ganaste **2 trades**!',            # Era 10 o 11, agora só 11
         'dice_win_1': 'Sacaste 10 o 7 y ganaste **1 trade**!',                    # Era 7-9, agora só 10 e 7
-        'dice_no_win': '¡No fue esta vez! La suma fue menor que 7, no ganaste trades.',
+        'dice_no_win': '¡No fue esta vez! ¡Inténtalo de nuevo la próxima vez!',
         'dice_total_trades': 'Total de Trades',
         'dice_total_count': 'Ahora tienes **{count}** trades.',
         'dice_cooldown_title': '⏳ Cooldown del Dado Activo',
@@ -874,7 +874,7 @@ TRANSLATIONS = {
     'dice_win_3': '🎉 Félicitations ! Vous avez fait 12 et gagné **2 trades** !',  # Era 3 trades
     'dice_win_2': 'Bravo ! Vous avez fait 11 et gagné **2 trades** !',             # Era 10 ou 11, agora só 11
     'dice_win_1': 'Vous avez fait 10 ou 7 et gagné **1 trade** !',                 # Era 7-9, agora só 10 e 7
-    'dice_no_win': 'Pas cette fois ! La somme était inférieure à 7, aucun trade gagné.',
+    'dice_no_win': 'Pas cette fois ! Réessayez la prochaine fois !',
     'dice_total_trades': 'Total de Trades',
     'dice_total_count': 'Vous avez maintenant **{count}** trades.',
     'dice_cooldown_title': '⏳ Cooldown du Dé Actif',
@@ -1078,7 +1078,7 @@ TRANSLATIONS = {
     'dice_win_3': '🎉 Glückwunsch! Du hast 12 geworfen und **2 Trades** gewonnen!',  # Era 3 trades
     'dice_win_2': 'Sehr gut! Du hast 11 geworfen und **2 Trades** gewonnen!',        # Era 10 oder 11, agora só 11
     'dice_win_1': 'Du hast 10 oder 7 geworfen und **1 Trade** gewonnen!',            # Era 7-9, agora só 10 e 7
-    'dice_no_win': 'Diesmal nicht! Die Summe war unter 7, kein Trade gewonnen.',
+    'dice_no_win': 'Diesmal nicht! Versuche es beim nächsten Mal!',
     'dice_total_trades': 'Gesamte Trades',
     'dice_total_count': 'Du hast jetzt **{count}** Trades.',
     'dice_cooldown_title': '⏳ Würfel-Cooldown aktiv',
@@ -1282,7 +1282,7 @@ TRANSLATIONS = {
     'dice_win_3': '🎉 Complimenti! Hai fatto 12 e vinto **2 trades**!',  # Era 3 trades
     'dice_win_2': 'Ottimo! Hai fatto 11 e vinto **2 trades**!',          # Era 10 o 11, agora só 11
     'dice_win_1': 'Hai fatto 10 o 7 e vinto **1 trade**!',               # Era 7-9, agora só 10 e 7
-    'dice_no_win': 'Non questa volta! La somma era inferiore a 7, nessun trade vinto.',
+    'dice_no_win': 'Non questa volta! Riprova la prossima volta!',
     'dice_total_trades': 'Totale Trades',
     'dice_total_count': 'Ora hai **{count}** trades.',
     'dice_cooldown_title': '⏳ Cooldown dei Dadi Attivo',
@@ -1486,7 +1486,7 @@ TRANSLATIONS = {
     'dice_win_3': '🎉 Gratulacje! Wyrzuciłeś 12 i wygrałeś **2 wymiany**!',  # Era 3 trades
     'dice_win_2': 'Świetnie! Wyrzuciłeś 11 i wygrałeś **2 wymiany**!',        # Era 10 lub 11, agora só 11
     'dice_win_1': 'Wyrzuciłeś 10 lub 7 i wygrałeś **1 wymianę**!',            # Era 7-9, agora só 10 e 7
-    'dice_no_win': 'Tym razem nie! Suma była mniejsza niż 7, brak wygranych wymian.',
+    'dice_no_win': 'Tym razem nie! Spróbuj ponownie następnym razem!',
     'dice_total_trades': 'Łączna liczba wymian',
     'dice_total_count': 'Masz teraz **{count}** wymian.',
     'dice_cooldown_title': '⏳ Aktywny cooldown kości',
