@@ -1252,40 +1252,39 @@ class SlotReminderButton(discord.ui.Button):
         
     async def callback(self, interaction):
         try:
-            # Verificar se a interação ainda é válida
-            if interaction.response.is_done():
+            # Permitir apenas o próprio usuário clicar no reminder
+            if interaction.user.id != self.user_id:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(t('not_your_button', self.lang), ephemeral=True)
                 return
 
-            # Se o slot já está disponível, avisa imediatamente
             current_time = datetime.datetime.now()
             last_use = slot_cooldowns.get(self.user_id, current_time)
-            if current_time >= last_use:
+
+            # Se o slot ainda está em cooldown, agenda o lembrete
+            if current_time < last_use:
+                time_diff = last_use - current_time
+                minutes = int(time_diff.total_seconds() // 60) + 1
+                slot_reminders[self.user_id] = last_use
+                bot.loop.create_task(send_slot_reminder(interaction.user, last_use, self.lang))
                 if not interaction.response.is_done():
                     await interaction.response.send_message(
-                        t('slot_already_available', self.lang),
+                        t('slot_reminder_set', self.lang, {'minutes': minutes}),
                         ephemeral=True
                     )
+                try:
+                    self.disabled = True
+                    await interaction.message.edit(view=self.view)
+                except Exception as e:
+                    await log_error(f"Erro ao desabilitar botão de slot: {e}")
                 return
 
-            # Calcular minutos restantes
-            time_diff = last_use - current_time
-            minutes = int(time_diff.total_seconds() // 60) + 1
-
-            # Agendar o lembrete
-            slot_reminders[self.user_id] = last_use
-            bot.loop.create_task(send_slot_reminder(interaction.user, last_use, self.lang))
-
+            # Se o slot já está disponível
             if not interaction.response.is_done():
                 await interaction.response.send_message(
-                    t('slot_reminder_set', self.lang, {'minutes': minutes}),
+                    t('slot_already_available', self.lang),
                     ephemeral=True
                 )
-
-            try:
-                self.disabled = True
-                await interaction.message.edit(view=self.view)
-            except Exception as e:
-                await log_error(f"Erro ao desabilitar botão de slot: {e}")
         except discord.NotFound:
             # Interação expirada - não fazer nada
             pass
@@ -1714,97 +1713,38 @@ class BoxReminderButton(discord.ui.Button):
         
     async def callback(self, interaction):
         try:
-            # Verificar se a interação ainda é válida
-            if interaction.response.is_done():
+            # Permitir apenas o próprio usuário clicar no reminder
+            if interaction.user.id != self.user_id:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(t('not_your_button', self.lang), ephemeral=True)
                 return
-                
-            # Verificar se o usuário ainda pode usar o box
+
             current_time = datetime.datetime.now()
             last_use = box_cooldowns.get(self.user_id, current_time)
             
             if current_time < last_use:
                 time_diff = last_use - current_time
-                minutes = int(time_diff.total_seconds() // 60)
-                seconds = int(time_diff.total_seconds() % 60)
-                
+                minutes = int(time_diff.total_seconds() // 60) + 1
+                box_reminders[self.user_id] = last_use
+                bot.loop.create_task(send_box_reminder(interaction.user, last_use, self.lang))
                 if not interaction.response.is_done():
                     await interaction.response.send_message(
-                        t('box_cooldown_active', self.lang, {
-                            'minutes': minutes,
-                            'seconds': seconds
-                        }),
+                        t('box_reminder_set', self.lang, {'minutes': minutes}),
                         ephemeral=True
                     )
+                try:
+                    self.disabled = True
+                    await interaction.message.edit(view=self.view)
+                except Exception as e:
+                    await log_error(f"Erro ao desabilitar botão de box: {e}")
                 return
-            
-            # Verificar se o usuário tem trades disponíveis
-            if self.user_id not in user_trades or user_trades[self.user_id] <= 0:
-                if not interaction.response.is_done():
-                    await interaction.response.send_message(t('no_trades_available', self.lang), ephemeral=True)
-                return
-            
-            # Verificar se há trades ativos demais
-            active_count = sum(1 for code, info in active_trades.items() if info.get('user_id') == self.user_id)
-            if active_count >= 3:
-                if not interaction.response.is_done():
-                    await interaction.response.send_message(t('max_active_trades', self.lang, {'count': active_count}), ephemeral=True)
-                return
-            
-            # Verificar se o sistema está ocupado
-            if len(active_trades) > 10:
-                if not interaction.response.is_done():
-                    await interaction.response.send_message(t('system_busy', self.lang), ephemeral=True)
-                return
-            
-            # Gerar código único
-            code = generate_code()
-            while code in active_trades:
-                code = generate_code()
-            
-            # Atualizar cooldown
-            box_cooldowns[self.user_id] = current_time + datetime.timedelta(minutes=5)
-            
-            # Atualizar no MongoDB
-            if db.is_connected():
-                db.set_last_box_time(self.user_id, box_cooldowns[self.user_id])
-            
-            # Registrar trade ativo
-            active_trades[code] = {
-                'user_id': self.user_id,
-                'start_time': current_time,
-                'expire_time': current_time + datetime.timedelta(minutes=30),
-                'status': 'active'
-            }
-            
-            users_with_active_trade[self.user_id] = code
-            
-            # Atualizar no MongoDB
-            if db.is_connected():
-                db.add_active_trade(code, self.user_id, current_time, current_time + datetime.timedelta(minutes=30))
-                db.set_user_active_trade(self.user_id, code)
-            
-            # Responder à interação
+
+            # Se o box já está disponível
             if not interaction.response.is_done():
                 await interaction.response.send_message(
-                    t('box_success', self.lang, {
-                        'code': code,
-                        'minutes': 30
-                    }),
+                    t('box_already_available', self.lang),
                     ephemeral=True
                 )
-            
-            # Executar o processo de trade em background
-            bot.loop.create_task(run_trade_process(code, 30, 'time', 30))
-            
-            try:
-                # Desativar o botão após o clique
-                self.disabled = True
-                await interaction.message.edit(view=self.view)
-            except Exception as e:
-                await log_error(f"Erro ao desabilitar botão: {e}")
-            
-            # Agendar o lembrete
-            bot.loop.create_task(send_box_reminder(interaction.user, self.box_time, self.lang))
         except discord.NotFound:
             # Interação expirada - não fazer nada
             pass
@@ -1826,7 +1766,6 @@ class BoxReminderButton(discord.ui.Button):
                 pass
             except Exception as e:
                 await log_error(f"Erro ao enviar mensagem de erro (lembrete): {e}")
-        
 
 async def send_box_reminder(user, box_time, lang):
     """Função para enviar o lembrete quando o cooldown do box acabar"""
