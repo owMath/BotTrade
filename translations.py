@@ -139,7 +139,7 @@ TRANSLATIONS = {
         'slot_reminder_button': 'Lembrar-me quando disponível',
         'not_your_button': 'Este botão não é para você!',
         'slot_already_available': 'O slot já está disponível para uso!',
-        'slot_reminder_set': 'Vou te avisar quando puder jogar novamente em aproximadamente {minutes} minuto(s).',
+        'slot_reminder_set': 'Você receberá um lembrete em {minutes} minutos quando puder jogar novamente.',
         'slot_reminder_message': '⏰ O slot já está disponível para jogar novamente! Use o comando `!slot` para tentar a sorte!',
         'slot_success': '✅ Lembrete configurado com sucesso! Você receberá uma notificação quando o slot estiver disponível novamente.',
         'slot_result_title': '🎰 Resultado do Slot',
@@ -410,7 +410,7 @@ TRANSLATIONS = {
         'slot_reminder_button': 'Remind me when available',
         'not_your_button': 'This button is not for you!',
         'slot_already_available': 'The slot is already available to use!',
-        'slot_reminder_set': 'Done! I will notify you when you can play again in approximately {minutes} minute(s).',
+       'slot_reminder_set': 'You will receive a reminder in {minutes} minutes when you can play again.',
         'slot_reminder_message': '⏰ **Reminder:** The slot is now available to play again! Use the `!slot` command to try your luck!',
         'slot_success': '✅ Reminder set successfully! You will receive a notification when the slot is available again.',
         'slot_result_title': '🎰 Slot Result',
@@ -680,7 +680,7 @@ TRANSLATIONS = {
         'slot_reminder_button': 'Recuérdame cuando esté disponible',
         'not_your_button': '¡Este botón no es para ti!',
         'slot_already_available': '¡La tragamonedas ya está disponible para usar!',
-        'slot_reminder_set': '¡Listo! Te avisaré cuando puedas jugar nuevamente en aproximadamente {minutes} minuto(s).',
+        'slot_reminder_set': 'Recibirás un recordatorio en {minutes} minutos cuando puedas jugar de nuevo.',
         'slot_reminder_message': '⏰ **Recordatorio:** ¡La tragamonedas ya está disponible para jugar nuevamente! ¡Usa el comando `!slot` para probar tu suerte!',
         'slot_success': '✅ ¡Recordatorio configurado con éxito! Recibirás una notificación cuando la tragamonedas esté disponible nuevamente.',
         'slot_result_title': '🎰 Resultado de la Tragamonedas',
@@ -1174,7 +1174,7 @@ TRANSLATIONS = {
     'slot_jackpot': '🏆 JACKPOT! Alle Symbole stimmen überein! Du hast 2 Trades gewonnen!',  # Era 3 trades
     'slot_two_match': '🎉 Zwei Symbole stimmen überein! Du hast 1 Trade gewonnen!',              # Era 2 trades
     'slot_no_match': '😢 Brak kombinacji. Spróbuj ponownie później!',
-    'slot_prize': 'Preis',
+    'slot_prize': 'Premio',
     'slot_trades_won': 'Sie haben **{count}** Trades gewonnen!',
     'slot_total_trades': 'Gesamte Trades',
     'slot_total_count': 'Sie haben jetzt **{count}** Trades.',
@@ -1378,14 +1378,14 @@ TRANSLATIONS = {
     'not_your_button': 'Questo pulsante non è per te!',
     'slot_already_available': 'Lo slot è già disponibile per l\'uso!',
     'slot_reminder_set': 'Pronto! Ti avviserò quando potrai giocare di nuovo tra circa {minutes} minuto(i).',
-    'slot_reminder_message': '⏰ **Promemoria:** Lo slot è di nuovo disponibile! Usa il comando `!slot` per tentare la fortuna!',
+    'slot_reminder_message': '⏰ **Promemoria:** Lo slot è di nuovo disponibile! Usa il comando `!slot`, per tenter votre chance!',
     'slot_success': '✅ Promemoria configurato con successo! Riceverai una notifica quando lo slot sarà di nuovo disponibile.',
     'slot_result_title': '🎰 Risultato dello Slot',
     'slot_result_desc': '{user} ha girato la slot machine!',
     'slot_machine': 'Slot Machine',
     'slot_result': 'Risultato',
     'slot_jackpot': '🏆 JACKPOT! Tutti i simboli corrispondono! Hai vinto 2 trades!',  # Era 3 trades
-    'slot_two_match': '🎉 Due simboli corrispondono! Hai vinto 1 trade!',              # Era 2 trades
+    'slot_two_match': '🎉 Deux symboles corrispondono! Hai vinto 1 trade!',              # Era 2 trades
     'slot_no_match': '😢 Nessuna combinazione. Riprova più tardi!',
     'slot_prize': 'Premio',
     'slot_trades_won': 'Hai vinto **{count}** trades!',

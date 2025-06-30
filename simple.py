@@ -1268,6 +1268,12 @@ class SlotReminderButton(discord.ui.Button):
                     await interaction.response.send_message(t('slot_already_available', self.lang), ephemeral=True)
                 return
 
+            # Impede múltiplos lembretes para o mesmo horário
+            if self.user_id in slot_reminders and slot_reminders[self.user_id] == remind_time:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(t('slot_reminder_set', self.lang, {'minutes': int(time_diff // 60), 'seconds': int(time_diff % 60)}), ephemeral=True)
+                return
+
             slot_reminders[self.user_id] = remind_time
             minutes = int(time_diff // 60)
             seconds = int(time_diff % 60)
@@ -1713,6 +1719,12 @@ class BoxReminderButton(discord.ui.Button):
             if time_diff <= 0:
                 if not interaction.response.is_done():
                     await interaction.response.send_message(t('box_already_available', self.lang), ephemeral=True)
+                return
+
+            # Impede múltiplos lembretes para o mesmo horário
+            if self.user_id in box_reminders and box_reminders[self.user_id] == remind_time:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(t('box_reminder_set', self.lang, {'minutes': int(time_diff // 60), 'seconds': int(time_diff % 60)}), ephemeral=True)
                 return
 
             box_reminders[self.user_id] = remind_time
