@@ -638,28 +638,6 @@ class Database:
     # Operações para Histórico de Trades
     # ===============================================
     
-    def get_user_trade_history(self, user_id):
-        """
-        Obtém o histórico de trades de um usuário
-        
-        Args:
-            user_id (int): ID do usuário
-            
-        Returns:
-            list: Lista de dicionários com informações dos trades
-        """
-        if not self.is_connected():
-            return []
-            
-        # Aqui você implementaria a consulta ao histórico de trades do usuário
-        # Por simplicidade, retornaremos uma lista vazia
-        try:
-            # Implementação fictícia para teste
-            return []
-        except Exception as e:
-            print(f"❌ Erro ao obter histórico de trades do usuário {user_id}: {e}")
-            return []
-    
     def get_user_total_completed_trades(self, user_id):
         """
         Obtém o total de trades completados por um usuário
@@ -1026,6 +1004,17 @@ class Database:
             print(f"❌ Erro ao encerrar aposta: {e}")
             return False
 
+    def delete_bet(self, bet_id):
+        """Deleta uma aposta do banco de dados."""
+        if not self.is_connected():
+            return False
+        try:
+            result = self.bets_collection.delete_one({'bet_id': bet_id})
+            return result.deleted_count > 0
+        except Exception as e:
+            print(f"❌ Erro ao deletar aposta: {e}")
+            return False
+
     def save_giveaway(self, giveaway_id, data):
         self.giveaways_collection.update_one({'_id': giveaway_id}, {'$set': data}, upsert=True)
 
@@ -1067,5 +1056,27 @@ class Database:
             return True
         except Exception as e:
             print(f"❌ Erro ao definir último uso de dado do usuário {user_id}: {e}")
+            return False
+    
+    def remove_dice_cooldown(self, user_id):
+        """Remove o cooldown do dado de um usuário."""
+        if not self.is_connected():
+            return False
+        try:
+            result = self.dice_cooldowns_collection.delete_one({'user_id': user_id})
+            return result.deleted_count > 0
+        except Exception as e:
+            print(f"❌ Erro ao remover cooldown de dado do usuário {user_id}: {e}")
+            return False
+    
+    def reset_box_cooldown(self, user_id):
+        """Reseta o cooldown do box de um usuário."""
+        if not self.is_connected():
+            return False
+        try:
+            result = self.box_cooldowns_collection.delete_one({'user_id': user_id})
+            return result.deleted_count > 0
+        except Exception as e:
+            print(f"❌ Erro ao resetar cooldown de box do usuário {user_id}: {e}")
             return False
         

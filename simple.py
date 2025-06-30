@@ -1,4 +1,4 @@
-import discord
+﻿import discord
 from discord.ext import commands
 import random
 import os
@@ -55,8 +55,8 @@ intents.members = True  # Necessário para obter informações de usuários
 bot = commands.Bot(command_prefix='!', intents=intents, help_command=None)
 
 # Configurações do Giveaway
-GIVEAWAY_ROLE_ID = 1154488434199634010
-GIVEAWAY_CHANNEL_IDS = [990726905030397984, 1376186354123407532, 1376186390965915748]  # Lista de IDs dos canais permitidos para giveaway
+GIVEAWAY_ROLE_ID = 1386700851476828241
+GIVEAWAY_CHANNEL_IDS = [1388319872362221679, 1388319886878445671, 1388319901784997898]  # Lista de IDs dos canais permitidos para giveaway
 ADMIN_ID = 879910043418501132  # ID do administrador master
 
 # Dicionários para armazenar informações (serão sincronizados com MongoDB)
@@ -452,76 +452,6 @@ def load_data_from_mongodb():
 # ===============================================
 # Comandos de Administrador
 # ===============================================
-
-@bot.command(name='trade')
-@commands.has_permissions(administrator=True)  # Restringe apenas para administradores
-async def trade_command(ctx, trades_count: int = 1, expire_minutes: int = 30):
-    """Comando para iniciar trades automaticamente (modo por contagem)"""
-    # Obter idioma do usuário
-    lang = get_user_language(ctx.author.id)
-    
-    try:
-        # Validar quantidade de trades
-        if trades_count < 1 or trades_count > 10:
-            await ctx.send(t('invalid_trades_count', lang))
-            return
-        
-        # Validar tempo de expiração
-        if expire_minutes < 1 or expire_minutes > 120:
-            await ctx.send(t('invalid_expiry_time', lang))
-            return
-        
-        # Verificar o número de trades ativos do usuário
-        user_trades_active = [code for code, info in active_trades.items() if info['user_id'] == ctx.author.id]
-        if len(user_trades_active) + trades_count > 3:  # Limite de 3 trades ativos por usuário
-            await ctx.send(t('max_active_trades', lang, {'count': len(user_trades_active)}))
-            return
-        
-        # Verificar se há trades simultâneos disponíveis
-        if not trade_semaphore.locked() and trade_semaphore._value <= 0:
-            await ctx.send(t('system_busy', lang))
-            return
-        
-        # Criar lista para armazenar códigos e mensagens
-        trade_messages = []
-        
-        # Enviar mensagens iniciais para todos os trades
-        for _ in range(trades_count):
-            code = generate_code()
-            
-            # Armazenar informações do código
-            code_info = {
-                'timestamp': datetime.datetime.now(),
-                'user_id': ctx.author.id,
-                'status': 'pending',
-                'expire_minutes': expire_minutes,  # Campo para tempo de expiração
-                'mode': 'trades'  # Modo padrão: por contagem
-            }
-            
-            active_trades[code] = code_info
-            
-            # Salvar no MongoDB
-            if db.is_connected():
-                db.set_active_trade(code, code_info)
-            
-            # Enviar mensagem inicial
-            initial_message = await ctx.send(t('trade_code_generated', lang, {'code': code, 'minutes': expire_minutes}))
-            trade_messages.append((code, initial_message))
-        
-        # Processar trades em paralelo
-        tasks = []
-        for code, message in trade_messages:
-            task = asyncio.create_task(process_trade(ctx, code, message, trades_count))
-            tasks.append(task)
-        
-        await asyncio.gather(*tasks)
-    except Exception as e:
-        await log_error(f"Erro no comando trade: {e}")
-        await ctx.send(t('command_error', lang))
-    
-    return
-
-
 @bot.command(name='checktrademember')
 @commands.has_permissions(administrator=True)  # Agora restrito para administradores
 async def checktrademember_command(ctx, member: discord.Member = None):
@@ -626,164 +556,6 @@ async def checktrademember_command(ctx, member: discord.Member = None):
     except Exception as e:
         await log_error(f"Erro no comando checktrademember: {e}")
         await ctx.send(t('command_error', lang))
-
-@bot.command(name='timemode')
-@commands.has_permissions(administrator=True)  # Restringe apenas para administradores
-async def timemode_command(ctx, duration: int = 30, expire_minutes: int = 30):
-    """Comando para iniciar trades em modo tempo (processando por X minutos)"""
-    # Obter idioma do usuário
-    lang = get_user_language(ctx.author.id)
-    
-    try:
-        # Validar duração
-        if duration < 1 or duration > 120:
-            await ctx.send(t('invalid_duration', lang))
-            return
-        
-        # Validar tempo de expiração
-        if expire_minutes < 1 or expire_minutes > 120:
-            await ctx.send(t('invalid_expiry_time', lang))
-            return
-        
-        # Verificar o número de trades ativos do usuário
-        user_trades_active = [code for code, info in active_trades.items() if info['user_id'] == ctx.author.id]
-        if len(user_trades_active) >= 3:  # Limite de 3 trades ativos por usuário
-            await ctx.send(t('max_active_trades', lang, {'count': len(user_trades_active)}))
-            return
-        
-        # Verificar se há trades simultâneos disponíveis
-        if not trade_semaphore.locked() and trade_semaphore._value <= 0:
-            await ctx.send(t('system_busy', lang))
-            return
-        
-        # Gerar um código para o modo tempo
-        code = generate_code()
-        
-        # Armazenar informações do código
-        code_info = {
-            'timestamp': datetime.datetime.now(),
-            'user_id': ctx.author.id,
-            'status': 'pending',
-            'expire_minutes': expire_minutes,  # Campo para tempo de expiração
-            'mode': 'time',  # Modo: por tempo
-            'duration': duration  # Duração do processamento
-        }
-        
-        active_trades[code] = code_info
-        
-        # Salvar no MongoDB
-        if db.is_connected():
-            db.set_active_trade(code, code_info)
-        
-        # Enviar mensagem inicial
-        initial_message = await ctx.send(t('trade_time_mode', lang, {'code': code, 'duration': duration, 'minutes': expire_minutes}))
-        
-        # Processar o trade em modo tempo
-        await process_trade(ctx, code, initial_message, duration)
-    except Exception as e:
-        await log_error(f"Erro no comando timemode: {e}")
-        await ctx.send(t('command_error', lang))
-    
-    return
-
-@bot.command(name='status')
-@commands.has_permissions(administrator=True)  # Restringe apenas para administradores
-async def status_command(ctx, code=None):
-    """Comando para verificar o status de um código (apenas para administradores)"""
-    # Obter idioma do usuário
-    lang = get_user_language(ctx.author.id)
-    
-    try:
-        if not code:
-            # Procurar códigos ativos do usuário
-            user_trades_active = [
-                (code, info) for code, info in active_trades.items() 
-                if info['user_id'] == ctx.author.id
-            ]
-            
-            if not user_trades_active:
-                await ctx.send(t('no_active_trades', lang))
-                return
-            
-            embed = discord.Embed(
-                title=t('embed_active_trades', lang),
-                description=t('embed_active_trades_desc', lang, {'count': len(user_trades_active)}),
-                color=0x0088ff
-            )
-            
-            for code, info in user_trades_active:
-                time_diff = datetime.datetime.now() - info['timestamp']
-                # Usar o tempo de expiração específico
-                expire_minutes = info.get('expire_minutes', 30)
-                minutes_left = max(0, expire_minutes - int(time_diff.total_seconds() / 60))
-                
-                status_text = info['status']
-                if status_text == 'pending':
-                    status_text = t('status_pending', lang)
-                elif status_text == 'processing':
-                    status_text = t('status_processing', lang)
-                elif status_text == 'completed':
-                    status_text = t('status_completed', lang)
-                elif status_text == 'failed':
-                    status_text = t('status_failed', lang)
-                
-                mode_text = t('mode_time', lang) if info.get('mode') == 'time' else t('mode_trades', lang)
-                
-                embed.add_field(
-                    name=f"Código: {code}",
-                    value=f"Status: {status_text}\nTempo restante: {minutes_left} minutos\nModo: {mode_text}",
-                    inline=False
-                )
-            
-            await ctx.send(embed=embed)
-            return
-        
-        # Verificar um código específico
-        if code not in active_trades:
-            await ctx.send(t('code_not_found', lang, {'code': code}))
-            return
-        
-        code_info = active_trades[code]
-        
-        # Verificar se o usuário é o dono do código ou um administrador
-        if code_info['user_id'] != ctx.author.id and not ctx.author.guild_permissions.administrator:
-            await ctx.send(t('not_your_code', lang))
-            return
-        
-        # Verificar status do código
-        time_diff = datetime.datetime.now() - code_info['timestamp']
-        # Usar o tempo de expiração específico
-        expire_minutes = code_info.get('expire_minutes', 30)
-        minutes_left = max(0, expire_minutes - int(time_diff.total_seconds() / 60))
-        
-        status_text = code_info['status']
-        if status_text == 'pending':
-            status_text = t('status_pending', lang)
-        elif status_text == 'processing':
-            status_text = t('status_processing', lang)
-        elif status_text == 'completed':
-            status_text = t('status_completed', lang)
-        elif status_text == 'failed':
-            status_text = t('status_failed', lang)
-        
-        mode_text = t('mode_time', lang) if code_info.get('mode') == 'time' else t('mode_trades', lang)
-        duration = code_info.get('duration', None)
-        
-        embed = discord.Embed(
-            title=t('embed_trade_status', lang, {'code': code}),
-            color=0x0088ff
-        )
-        embed.add_field(name="Status", value=status_text, inline=False)
-        embed.add_field(name="Tempo restante", value=f"{minutes_left} minutos", inline=False)
-        embed.add_field(name="Modo", value=mode_text, inline=False)
-        if duration:
-            embed.add_field(name="Duração", value=f"{duration} minutos", inline=False)
-        
-        await ctx.send(embed=embed)
-    except Exception as e:
-        await log_error(f"Erro no comando status: {e}")
-        await ctx.send(t('command_error', lang))
-
 
 @bot.command(name='abort')
 @commands.has_permissions(administrator=True)  # Agora restrito para administradores
@@ -893,72 +665,6 @@ async def activecodes_command(ctx):
         await ctx.send(embed=embed)
     except Exception as e:
         await log_error(f"Erro no comando activecodes: {e}")
-        await ctx.send(t('command_error', lang))
-    
-@bot.command(name='tradeshistory', aliases=['history'])
-async def tradeshistory_command(ctx, member: discord.Member = None):
-    """Comando para ver o histórico de trades de um usuário"""
-    # Obter idioma do usuário
-    lang = get_user_language(ctx.author.id)
-    
-    try:
-        # Se não for especificado um membro, usa o autor do comando
-        if not member:
-            member = ctx.author
-        
-        # Verificar permissões - apenas o próprio usuário ou admins podem ver histórico
-        if member.id != ctx.author.id and not ctx.author.guild_permissions.administrator:
-            await ctx.send(t('history_no_permission', lang))
-            return
-        
-        # Obter histórico do MongoDB (supondo que temos uma função para isso)
-        user_history = []
-        trades_total = 0
-        
-        if db.is_connected():
-            user_history = db.get_user_trade_history(member.id)
-            trades_total = db.get_user_total_completed_trades(member.id)
-        
-        # Verificar se existem dados de histórico
-        if not user_history:
-            # Verificar se o usuário já realizou trades
-            if member.id in user_trades and user_trades[member.id] > 0:
-                await ctx.send(t('history_no_completed_trades', lang, {'user': member.display_name}))
-            else:
-                await ctx.send(t('history_no_trades', lang, {'user': member.display_name}))
-            return
-        
-        # Criar embed para mostrar o histórico
-        embed = discord.Embed(
-            title=t('history_title', lang, {'user': member.display_name}),
-            description=t('history_desc', lang, {'total': trades_total}),
-            color=0x00aa00
-        )
-        
-        # Adicionar os últimos 5 trades (ou menos, se não houver 5)
-        recent_trades = user_history[:5]  # Assume que o histórico já vem ordenado pelo mais recente
-        
-        for i, trade in enumerate(recent_trades):
-            code = trade.get('code', 'N/A')
-            timestamp = trade.get('timestamp', datetime.datetime.now())
-            amount = trade.get('amount', 0)
-            success = trade.get('success', True)
-            
-            status_text = t('trade_success', lang) if success else t('trade_failed', lang)
-            time_str = timestamp.strftime("%d/%m/%Y %H:%M")
-            
-            embed.add_field(
-                name=f"#{i+1} - {code}",
-                value=f"📅 {time_str}\n🔢 {t('trades_amount', lang)}: {amount}\n📊 {t('status', lang)}: {status_text}",
-                inline=True
-            )
-        
-        # Adicionar footer com informação adicional
-        embed.set_footer(text=t('history_footer', lang))
-        
-        await ctx.send(embed=embed)
-    except Exception as e:
-        await log_error(f"Erro no comando tradeshistory: {e}")
         await ctx.send(t('command_error', lang))
     
 @bot.command(name='resetclaim')
@@ -1699,23 +1405,23 @@ async def slot_command(ctx):
                 await ctx.send(embed=embed, view=view)
                 return
         
-        # Emojis para o slot
-        emojis = ["🍒", "🍋", "🍉", "🍇", "💰", "⭐"]
+        # Emojis para o slot (aumentado para 8 símbolos para dificultar)
+        emojis = ["🍒", "🍋", "🍉", "🍇", "💰", "⭐", "💎", "🎰"]
         
         # Escolhe 3 símbolos aleatórios
         results = [random.choice(emojis) for _ in range(3)]
         
-        # Verificar resultado
+        # Verificar resultado (ajustado para ser mais difícil)
         trades_won = 0
         result_text = ""
         
-        # Todos os símbolos iguais (jackpot) = 3 trades
+        # Todos os símbolos iguais (jackpot) = 2 trades (reduzido de 3)
         if results[0] == results[1] == results[2]:
-            trades_won = 3
-            result_text = t('slot_jackpot', lang)
-        # Dois símbolos iguais = 2 trades
-        elif results[0] == results[1] or results[1] == results[2] or results[0] == results[2]:
             trades_won = 2
+            result_text = t('slot_jackpot', lang)
+        # Dois símbolos iguais = 1 trade (reduzido de 2)
+        elif results[0] == results[1] or results[1] == results[2] or results[0] == results[2]:
+            trades_won = 1
             result_text = t('slot_two_match', lang)
         # Nenhum símbolo igual = sem prêmio
         else:
@@ -1801,21 +1507,32 @@ async def resetslot_command(ctx, member: discord.Member):
             await ctx.send(t('resetslot_no_member', lang))
             return
         
+        # Verificar se o usuário está em cooldown
+        was_on_cooldown = False
+        
         # Remover o usuário do dicionário de cooldown
         if member.id in slot_cooldowns:
             del slot_cooldowns[member.id]
+            was_on_cooldown = True
             
-            # Remover qualquer lembrete pendente
-            if member.id in slot_reminders:
-                del slot_reminders[member.id]
+        # Remover qualquer lembrete pendente
+        if member.id in slot_reminders:
+            del slot_reminders[member.id]
+            was_on_cooldown = True
             
-            # Atualizar no MongoDB
-            if db.is_connected():
-                db.remove_slot_cooldown(member.id)
-            
-            await ctx.send(t('resetslot_success', lang, {'user': member.display_name}))
+        # Atualizar no MongoDB
+        if db.is_connected():
+            db.remove_slot_cooldown(member.id)
+        
+        if was_on_cooldown:
+            embed = discord.Embed(
+                title="✅ Reset Concluído",
+                description=f"O cooldown do jogo da caixa de {member.mention} foi resetado com sucesso!",
+                color=0x00ff00
+            )
+            await ctx.send(embed=embed)
         else:
-            await ctx.send(t('resetslot_not_on_cooldown', lang, {'user': member.display_name}))
+            await ctx.send(t('resetbox_not_on_cooldown', lang, {'user': member.display_name}))
     except Exception as e:
         await log_error(f"Erro no comando resetslot: {e}")
         await ctx.send(t('command_error', lang))
@@ -1980,14 +1697,11 @@ class BoxGameButton(discord.ui.Button):
 class BoxGameView(discord.ui.View):
     def __init__(self, user_id, lang):
         super().__init__(timeout=60)  # 1 minuto para escolher
-        
         try:
-            # Escolher uma caixa aleatória para ser a vencedora (1-5)
-            winning_box = random.randint(1, 5)
-            
-            # Adicionar 5 botões (caixas)
-            for i in range(1, 6):
-                is_winner = (i == winning_box)
+            # Agora são 10 caixas e 2 vencedoras
+            winning_boxes = random.sample(range(1, 11), 2)  # 2 caixas vencedoras entre 1 e 10
+            for i in range(1, 11):
+                is_winner = (i in winning_boxes)
                 self.add_item(BoxGameButton(i, is_winner, user_id, lang))
         except Exception as e:
             print(f"❌ Erro ao criar view do jogo da caixa: {e}")
@@ -2191,327 +1905,131 @@ async def box_command(ctx):
 @bot.command(name='resetbox')
 @commands.has_permissions(administrator=True)  # Restringe apenas para administradores
 async def resetbox_command(ctx, member: discord.Member):
-    """Comando para administradores resetarem o cooldown do box de um usuário"""
-    # Obter idioma do usuário
-    lang = get_user_language(ctx.author.id)
-    
+    """Reseta o cooldown do jogo das caixas de um usuário"""
     try:
-        # Verificar se o membro foi especificado
-        if not member:
-            await ctx.send(t('resetbox_no_member', lang))
-            return
+        user_id = ctx.author.id
+        lang = get_user_language(user_id)
         
-        # Remover o usuário do dicionário de cooldown
+        if not member:
+            await ctx.send(t('user_not_found', lang))
+            return
+            
+        # Verificar se o usuário está em cooldown
+        was_on_cooldown = False
+        
+        # Resetar cooldown no dicionário local
         if member.id in box_cooldowns:
             del box_cooldowns[member.id]
+            was_on_cooldown = True
             
-            # Remover qualquer lembrete pendente
-            if member.id in box_reminders:
-                del box_reminders[member.id]
+        # Remover qualquer lembrete pendente
+        if member.id in box_reminders:
+            del box_reminders[member.id]
+            was_on_cooldown = True
             
-            # Atualizar no MongoDB
-            if db.is_connected():
-                db.remove_box_cooldown(member.id)
+        # Resetar no banco de dados
+        if db.is_connected():
+            db.reset_box_cooldown(member.id)
             
-            await ctx.send(t('resetbox_success', lang, {'user': member.display_name}))
+        if was_on_cooldown:
+            embed = discord.Embed(
+                title=t('reset_success', lang),
+                description=t('reset_box_success', lang).format(member.mention),
+                color=0x00ff00
+            )
+            await ctx.send(embed=embed)
         else:
             await ctx.send(t('resetbox_not_on_cooldown', lang, {'user': member.display_name}))
+        
     except Exception as e:
+        user_id = ctx.author.id
+        lang = get_user_language(user_id)
         await log_error(f"Erro no comando resetbox: {e}")
-        await ctx.send(t('command_error', lang))
-
-@bot.command(name='ajuda')
-async def help_command(ctx):
-    """Exibe ajuda sobre os comandos do bot"""
-    try:
-        # Obter idioma do usuário
-        lang = get_user_language(ctx.author.id)
-        
-        if ctx.author.guild_permissions.administrator:
-            # Se for admin, mostra também a ajuda de admin
-            await adminhelp_command(ctx)
-        
-        embed = discord.Embed(
-            title=t('embed_help_title', lang),
-            description=t('embed_help_desc', lang),
-            color=0xffbb00
-        )
-        
-        embed.add_field(
-            name="!listtrades", 
-            value=t('help_listtrades', lang), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!claimtrade", 
-            value=t('help_claimtrade', lang), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!usetrade [quantidade]", 
-            value=t('help_usetrade', lang),
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!slot", 
-            value=t('help_slot', lang), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!box", 
-            value=t('help_box', lang), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!abort [código]", 
-            value=t('help_abort', lang), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!tradeshistory", 
-            value=t('help_tradeshistory', lang), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!checktrademember [@usuário]", 
-            value=t('help_checktrademember', lang), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!ajuda", 
-            value=t('help_help', lang), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!lang [pt/en/es]", 
-            value=t('help_lang', lang), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!resetbox [@usuário]", 
-            value=t('help_resetbox', lang), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!stats [período]", 
-            value=t('help_stats', lang), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!giveaway [duração] [ganhadores] [trades] [cargo] [prêmio]", 
-            value=t('help_giveaway', lang), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!resetuser [@usuário]", 
-            value=t('Resetar código de trade ativo de um usuário'), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!deletegiveaway [ID]", 
-            value=t('help_deletegiveaway', lang), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!resetdice [@usuário]", 
-            value=t('help_resetdice', lang), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!reset-all", 
-            value="Reseta a quantidade de trades de todos os usuários para 0 (apenas admin).", 
-            inline=False
-        )
-        
-        await ctx.send(embed=embed)
-    except Exception as e:
-        user_id = ctx.author.id
-        lang = get_user_language(user_id)
-        await log_error(f"Erro no comando help: {e}")
-        await ctx.send(t('command_error', lang))
-
-@bot.command(name='adminhelp')
-@commands.has_permissions(administrator=True)  # Restringe apenas para administradores
-async def adminhelp_command(ctx):
-    """Exibe ajuda sobre os comandos de administrador"""
-    try:
-        # Obter idioma do usuário
-        lang = get_user_language(ctx.author.id)
-        
-        embed = discord.Embed(
-            title=t('embed_admin_help', lang),
-            description=t('embed_admin_help_desc', lang),
-            color=0xff5500
-        )
-        
-        embed.add_field(
-            name="!trade [quantidade] [tempo_expiração]", 
-            value=t('help_trade', lang), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!timemode [duração] [tempo_expiração]", 
-            value=t('help_timemode', lang), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!status [código]", 
-            value=t('help_status', lang), 
-            inline=False
-        )
-
-        embed.add_field(
-            name="!abort [código]", 
-            value=t('help_abort', lang), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!givetrade [@usuário] [quantidade]", 
-            value=t('help_givetrade', lang), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!activecodes", 
-            value=t('help_activecodes', lang), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!resetclaim [@usuário]", 
-            value=t('help_resetclaim', lang), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!resetslot [@usuário]", 
-            value=t('help_resetslot', lang), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!resetbox [@usuário]", 
-            value=t('help_resetbox', lang), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!stats [período]", 
-            value=t('help_stats', lang), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!resetuser [@usuário]", 
-            value=t('Resetar código de trade ativo de um usuário'), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!checktrademember [@usuário]", 
-            value=t('help_checktrademember', lang), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!giveaway [duração] [ganhadores] [trades] [cargo] [prêmio]", 
-            value=t('help_giveaway', lang), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!deletegiveaway [ID]", 
-            value=t('help_deletegiveaway', lang), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!resetdice [@usuário]", 
-            value=t('help_resetdice', lang), 
-            inline=False
-        )
-        
-        embed.add_field(
-            name="!reset-all", 
-            value="Reseta a quantidade de trades de todos os usuários para 0 (apenas admin).", 
-            inline=False
-        )
-        
-        await ctx.send(embed=embed)
-    except Exception as e:
-        user_id = ctx.author.id
-        lang = get_user_language(user_id)
-        await log_error(f"Erro no comando adminhelp: {e}")
         await ctx.send(t('command_error', lang))
 
 @bot.command(name='helpdb')
 @commands.has_permissions(administrator=True)  # Restringe apenas para administradores
 async def helpdb_command(ctx):
-    """Exibe informações sobre o status da conexão com o banco de dados"""
+    """Exibe informações detalhadas sobre o status do bot e banco de dados"""
     try:
         # Obter idioma do usuário
         lang = get_user_language(ctx.author.id)
         
         embed = discord.Embed(
-            title=t('embed_db_status', lang),
+            title="🔧 Status do Bot - Informações Detalhadas",
             color=0x0088ff
         )
         
+        # Status do Banco de Dados
         if db.is_connected():
-            embed.description = t('db_connected', lang)
             embed.add_field(
-                name="Informações", 
-                value=t('db_info', lang), 
-                inline=False
-            )
-            
-            # Adicionar estatísticas
-            user_trades_count = len(user_trades)
-            daily_cooldown_count = len(daily_claim_cooldown)
-            active_trades_count = len(active_trades)
-            active_users_count = len(users_with_active_trade)
-            
-            embed.add_field(
-                name="Estatísticas", 
-                value=t('db_stats', lang, {
-                    'users': user_trades_count,
-                    'cooldowns': daily_cooldown_count,
-                    'active': active_trades_count,
-                    'in_progress': active_users_count
-                }),
+                name="🗄️ Status do Banco de Dados",
+                value="✅ Conectado - MongoDB funcionando normalmente",
                 inline=False
             )
         else:
-            embed.description = t('db_disconnected', lang)
             embed.add_field(
-                name="Atenção", 
-                value=t('db_memory_warning', lang), 
+                name="🗄️ Status do Banco de Dados",
+                value="❌ Desconectado - Usando armazenamento em memória",
                 inline=False
             )
-            embed.add_field(
-                name="Solução", 
-                value=t('db_solution', lang), 
-                inline=False
-            )
+        
+        # Estatísticas Gerais
+        user_trades_count = len(user_trades)
+        daily_cooldown_count = len(daily_claim_cooldown)
+        active_trades_count = len(active_trades)
+        active_users_count = len(users_with_active_trade)
+        
+        embed.add_field(
+            name="📊 Estatísticas Gerais",
+            value=f"👥 Usuários com trades: {user_trades_count}\n"
+                  f"🎯 Total de trades: {sum(user_trades.values())}\n"
+                  f"⏰ Usuários em cooldown: {daily_cooldown_count}\n"
+                  f"🔄 Trades ativos: {active_trades_count}\n"
+                  f"👤 Usuários com trade ativo: {active_users_count}",
+            inline=False
+        )
+        
+        # Status do Bot
+        uptime = datetime.datetime.now() - bot.start_time if hasattr(bot, 'start_time') else datetime.timedelta(0)
+        latency = round(bot.latency * 1000)
+        guild_count = len(bot.guilds)
+        user_count = len(set(member for guild in bot.guilds for member in guild.members))
+        
+        embed.add_field(
+            name="🤖 Status do Bot",
+            value=f"🟢 Online desde: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}\n"
+                  f"📡 Latência: {latency}ms\n"
+                  f"👥 Usuários: {user_count}",
+            inline=False
+        )
+        
+        # Comandos de Administrador
+        admin_commands = [
+            "`!checktrademember`", "`!abort`", "`!activecodes`", "`!resetclaim`",
+            "`!givetrade`", "`!resetbox`", "`!resetuser`", "`!deletegiveaway`",
+            "`!resetdice`", "`!reset-all`", "`!giveaway`", "`!helpdb`",
+            "`!resetslot`", "`!bet`", "`!lockbet`", "`!endbet`", "`!deletebet`",
+            "`!forcegiveaway`", "`!removetrade`"
+        ]
+        
+        embed.add_field(
+            name="⚙️ Comandos de Administrador",
+            value=" ".join(admin_commands),
+            inline=False
+        )
+        
+        # Comandos de Usuário
+        user_commands = [
+            "`!listtrades`", "`!claimtrade`", "`!usetrade`", "`!slot`",
+            "`!box`", "`!dice`", "`!lang`"
+        ]
+        
+        embed.add_field(
+            name="👤 Comandos de Usuário",
+            value=" ".join(user_commands),
+            inline=False
+        )
         
         await ctx.send(embed=embed)
     except Exception as e:
@@ -2640,12 +2158,12 @@ async def process_trade_with_dm(ctx, code, dm_message, trades_amount):
 # Update your process_trade variable to use the new DM function
 process_trade = process_trade_with_dm   # You can keep this for admin commands
 
-# Limpar trades ativos de um usuário quando um trade é concluído
 @bot.event
 async def on_trade_completed(user_id, code):
-    """Evento chamado quando um trade é concluído"""
+    """Evento disparado quando um trade é completado"""
     try:
-        if user_id in users_with_active_trade and users_with_active_trade[user_id] == code:
+        # Remover o usuário do dicionário de usuários com trades ativos
+        if user_id in users_with_active_trade:
             del users_with_active_trade[user_id]
             
             # Atualizar no MongoDB
@@ -2654,14 +2172,9 @@ async def on_trade_completed(user_id, code):
     except Exception as e:
         await log_error(f"Erro no evento on_trade_completed: {e}")
 
-# Adicionar funções de tratamento de erros para explicar quando comandos requerem permissões de admin
-@trade_command.error
-@timemode_command.error
-@status_command.error
 @givetrade_command.error
 @resetslot_command.error
 @resetbox_command.error
-@adminhelp_command.error
 @helpdb_command.error
 async def admin_command_error(ctx, error):
     try:
@@ -2675,7 +2188,6 @@ async def admin_command_error(ctx, error):
     except Exception as e:
         await log_error(f"Erro ao tratar erro de comando de admin: {e}")
 
-# Adicionar função de tratamento de erros para explicar quando comandos devem ser usados no canal correto
 @listtrades_command.error
 @claimtrade_command.error
 @usetrade_command.error
@@ -2960,14 +2472,20 @@ async def on_raw_reaction_add(payload):
 @commands.has_permissions(administrator=True)
 async def deletegiveaway_command(ctx, giveaway_id: str):
     lang = get_user_language(ctx.author.id)
-    if ctx.author.id != ADMIN_ID:
+    
+    # Verificar se é admin ou tem o cargo de giveaway
+    has_giveaway_role = any(role.id == GIVEAWAY_ROLE_ID for role in ctx.author.roles)
+    
+    if ctx.author.id != ADMIN_ID and not has_giveaway_role:
         await ctx.send(t('admin_only', lang))
         return
+        
     if giveaway_id not in active_giveaways:
         await ctx.send(t('giveaway_not_found', lang))
         return
+        
     giveaway = active_giveaways[giveaway_id]
-    channel = bot.get_channel(GIVEAWAY_CHANNEL_ID)
+    channel = bot.get_channel(GIVEAWAY_CHANNEL_IDS[0])
     try:
         message = await channel.fetch_message(giveaway['message_id'])
         await message.delete()
@@ -2987,13 +2505,25 @@ async def resetdice_command(ctx, member: discord.Member):
         if not member:
             await ctx.send(t('resetdice_no_member', lang))
             return
+        
+        # Verificar se o usuário está em cooldown
+        was_on_cooldown = False
+        
+        # Verificar no dicionário local
         if member.id in user_dice_cooldowns:
             del user_dice_cooldowns[member.id]
-            if member.id in user_dice_reminders:
-                del user_dice_reminders[member.id]
-            if db.is_connected():
-                if hasattr(db, 'remove_dice_cooldown'):
-                    db.remove_dice_cooldown(member.id)
+            was_on_cooldown = True
+            
+        # Remover qualquer lembrete pendente
+        if member.id in user_dice_reminders:
+            del user_dice_reminders[member.id]
+            was_on_cooldown = True
+            
+        # Resetar no banco de dados
+        if db.is_connected():
+            db.remove_dice_cooldown(member.id)
+        
+        if was_on_cooldown:
             await ctx.send(t('resetdice_success', lang, {'user': member.display_name}))
         else:
             await ctx.send(t('resetdice_not_on_cooldown', lang, {'user': member.display_name}))
@@ -3174,12 +2704,17 @@ async def dice_command(ctx):
     d2 = random.randint(1, 6)
     soma = d1 + d2
     trades_won = 0
-    if soma == 12:
-        trades_won = 3
-    elif soma in [10, 11]:
+    
+    # Ajustado para ser mais fácil
+    if soma == 12:  # Soma 12 = 2 trades
         trades_won = 2
-    elif 7 <= soma <= 9:
+    elif soma == 11:  # Soma 11 = 2 trades (aumentado de 1 para 2)
+        trades_won = 2
+    elif soma == 10:  # Soma 10 = 1 trade (adicionado)
         trades_won = 1
+    elif soma == 7:  # Soma 7 = 1 trade (adicionado)
+        trades_won = 1
+    # Outros valores = sem prêmio
     
     # Mensagem de resultado
     if trades_won > 0:
@@ -3203,11 +2738,11 @@ async def dice_command(ctx):
         inline=False
     )
     
-    if trades_won == 3:
+    if soma == 12:
         embed.add_field(name=t('dice_prize', lang), value=t('dice_win_3', lang), inline=False)
-    elif trades_won == 2:
+    elif soma == 11:
         embed.add_field(name=t('dice_prize', lang), value=t('dice_win_2', lang), inline=False)
-    elif trades_won == 1:
+    elif soma == 10 or soma == 7:
         embed.add_field(name=t('dice_prize', lang), value=t('dice_win_1', lang), inline=False)
     else:
         embed.add_field(name=t('dice_prize', lang), value=t('dice_no_win', lang), inline=False)
@@ -3333,6 +2868,47 @@ async def endbet_command(ctx, bet_id: str, opcao_vencedora: int):
     embed.set_footer(text=f'ID da aposta: {bet_id}')
     view = BetVoteView(bet_id, bet['options'], locked=True)
     await ctx.send(embed=embed, view=view)
+
+@bot.command(name='deletebet')
+@commands.has_permissions(administrator=True)
+async def deletebet_command(ctx, bet_id: str):
+    """Comando para deletar uma aposta"""
+    lang = get_user_language(ctx.author.id)
+    
+    # Verificar se a aposta existe
+    bet = db.get_bet(bet_id)
+    if not bet:
+        await ctx.send(t('bet_not_found', lang, {'id': bet_id}))
+        return
+    
+    # Deletar a aposta do banco de dados
+    if db.is_connected():
+        db.delete_bet(bet_id)
+    
+    # Criar embed de confirmação
+    embed = discord.Embed(
+        title="🗑️ Aposta Deletada",
+        description=f"A aposta **{bet['title']}** foi deletada com sucesso!",
+        color=0xff0000
+    )
+    embed.add_field(
+        name="ID da Aposta",
+        value=f"`{bet_id}`",
+        inline=False
+    )
+    embed.add_field(
+        name="Status",
+        value=f"`{bet['status']}`",
+        inline=True
+    )
+    embed.add_field(
+        name="Opções",
+        value=f"`{len(bet['options'])}`",
+        inline=True
+    )
+    embed.set_footer(text=f"Deletado por {ctx.author.display_name}")
+    
+    await ctx.send(embed=embed)
 
 async def end_giveaway(giveaway_id):
     if giveaway_id not in active_giveaways:
