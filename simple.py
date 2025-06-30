@@ -39,6 +39,27 @@ async def log_error(message, exception=None):
         except Exception as e:
             print(f"❌ Erro ao acessar canal de log: {e}")
 
+async def log_success(message):
+    print(f"✅ {message}")
+    
+    log_channel_id = os.getenv('LOG_CHANNEL_ID')
+    if log_channel_id:
+        try:
+            channel = bot.get_channel(int(log_channel_id))
+            if channel:
+                embed = discord.Embed(
+                    title="✅ Log de Sucesso",
+                    description=f"**{message}**",
+                    color=0x00ff00
+                )
+                embed.timestamp = datetime.datetime.now()
+                try:
+                    await channel.send(embed=embed)
+                except Exception as e:
+                    print(f"❌ Falha ao enviar log para canal Discord: {e}")
+        except Exception as e:
+            print(f"❌ Erro ao acessar canal de log: {e}")
+
 # Carregar variáveis de ambiente
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -2055,7 +2076,7 @@ async def helpdb_command(ctx):
             "`!givetrade`", "`!resetbox`", "`!resetuser`", "`!deletegiveaway`",
             "`!resetdice`", "`!reset-all`", "`!giveaway`", "`!helpdb`",
             "`!resetslot`", "`!bet`", "`!lockbet`", "`!endbet`", "`!deletebet`",
-            "`!forcegiveaway`", "`!removetrade`"
+            "`!forcegiveaway`", "`!removetrade`", "`!listbets`", "`!cleanoldbets`"
         ]
         
         embed.add_field(
@@ -2073,6 +2094,20 @@ async def helpdb_command(ctx):
         embed.add_field(
             name="👤 Comandos de Usuário",
             value=" ".join(user_commands),
+            inline=False
+        )
+        
+        # Comandos de Limpeza e Gerenciamento
+        cleanup_commands = [
+            "`!listbets` - Lista todas as apostas ativas",
+            "`!cleanoldbets [dias]` - Remove apostas antigas (padrão: 7 dias)",
+            "`!deletebet [bet_id]` - Deleta aposta específica",
+            "`!endbet [bet_id] [opção]` - Encerra aposta com vencedor"
+        ]
+        
+        embed.add_field(
+            name="🧹 Comandos de Limpeza e Gerenciamento",
+            value="\n".join(cleanup_commands),
             inline=False
         )
         
@@ -2342,7 +2377,7 @@ async def on_ready():
         print(f'Bot conectado como {bot.user.name}')
         activity = discord.Activity(type=discord.ActivityType.watching, name="Created by Math")
         await bot.change_presence(activity=activity)
-        await log_error("Bot iniciado com sucesso")
+        await log_success("Bot iniciado com sucesso")
         load_data_from_mongodb()
         bot.loop.create_task(sync_data_to_mongodb())
         bot.loop.create_task(cleanup_expired_trades())
@@ -3204,6 +3239,111 @@ async def removetrade_command(ctx, user_id: int, amount: int):
         db.decrement_user_trades(user_id, amount)
 
     await ctx.send(f"Removido {amount} trade(s) do usuário com ID {user_id}. Agora ele possui {user_trades[user_id]} trades.")
+
+@bot.command(name='listbets')
+@commands.has_permissions(administrator=True)
+async def listbets_command(ctx):
+    """Lista todas as apostas ativas para facilitar limpeza"""
+    lang = get_user_language(ctx.author.id)
+    
+    try:
+        if not db.is_connected():
+            await ctx.send("❌ Banco de dados não conectado")
+            return
+            
+        # Buscar todas as apostas ativas
+        bets = db.bets_collection.find({'status': {'$in': ['open', 'locked']}})
+        bets_list = list(bets)
+        
+        if not bets_list:
+            await ctx.send("✅ Nenhuma aposta ativa encontrada")
+            return
+            
+        embed = discord.Embed(
+            title="📋 Apostas Ativas",
+            description=f"Total de apostas: {len(bets_list)}",
+            color=0x00ff00
+        )
+        
+        # Mostrar as primeiras 10 apostas (limite do Discord)
+        for i, bet in enumerate(bets_list[:10]):
+            status_emoji = "🔓" if bet['status'] == 'open' else "🔒"
+            embed.add_field(
+                name=f"{status_emoji} {bet['title']}",
+                value=f"**ID:** `{bet['bet_id']}`\n**Status:** {bet['status']}\n**Opções:** {len(bet['options'])}\n**Votos totais:** {sum(len(opt['votes']) for opt in bet['options'])}",
+                inline=False
+            )
+        
+        if len(bets_list) > 10:
+            embed.add_field(
+                name="📝 Nota",
+                value=f"Mostrando apenas as primeiras 10 apostas de {len(bets_list)} total",
+                inline=False
+            )
+            
+        embed.add_field(
+            name="🔧 Comandos úteis",
+            value="`!deletebet [bet_id]` - Deletar aposta\n`!endbet [bet_id] [opção]` - Encerrar aposta\n`!lockbet [bet_id]` - Bloquear votação",
+            inline=False
+        )
+        
+        await ctx.send(embed=embed)
+        
+    except Exception as e:
+        await log_error(f"Erro ao listar apostas: {e}")
+        await ctx.send(t('command_error', lang))
+
+@bot.command(name='cleanoldbets')
+@commands.has_permissions(administrator=True)
+async def cleanoldbets_command(ctx, days: int = 7):
+    """Remove apostas antigas (padrão: 7 dias)"""
+    lang = get_user_language(ctx.author.id)
+    
+    try:
+        if not db.is_connected():
+            await ctx.send("❌ Banco de dados não conectado")
+            return
+            
+        # Calcular data limite
+        cutoff_date = datetime.datetime.now() - datetime.timedelta(days=days)
+        
+        # Buscar apostas antigas
+        old_bets = db.bets_collection.find({
+            'status': {'$in': ['open', 'locked']},
+            'created_at': {'$lt': cutoff_date}
+        })
+        
+        old_bets_list = list(old_bets)
+        
+        if not old_bets_list:
+            await ctx.send(f"✅ Nenhuma aposta mais antiga que {days} dias encontrada")
+            return
+            
+        # Deletar apostas antigas
+        deleted_count = 0
+        for bet in old_bets_list:
+            try:
+                db.delete_bet(bet['bet_id'])
+                deleted_count += 1
+            except Exception as e:
+                await log_error(f"Erro ao deletar aposta {bet['bet_id']}: {e}")
+        
+        embed = discord.Embed(
+            title="🧹 Limpeza de Apostas Antigas",
+            description=f"✅ {deleted_count} apostas antigas removidas",
+            color=0x00ff00
+        )
+        embed.add_field(
+            name="📊 Detalhes",
+            value=f"**Critério:** Apostas mais antigas que {days} dias\n**Total removido:** {deleted_count} apostas",
+            inline=False
+        )
+        
+        await ctx.send(embed=embed)
+        
+    except Exception as e:
+        await log_error(f"Erro na limpeza de apostas: {e}")
+        await ctx.send(t('command_error', lang))
 
 # Executar o bot com o token do Discord
 if __name__ == "__main__":
