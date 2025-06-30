@@ -1260,49 +1260,33 @@ class SlotReminderButton(discord.ui.Button):
 
             current_time = datetime.datetime.now()
             last_use = slot_cooldowns.get(self.user_id, current_time)
+            remind_time = last_use + datetime.timedelta(minutes=5)
+            time_diff = (remind_time - current_time).total_seconds()
 
-            # Se o slot ainda está em cooldown, agenda o lembrete
-            if current_time < last_use:
-                time_diff = last_use - current_time
-                minutes = int(time_diff.total_seconds() // 60) + 1
-                slot_reminders[self.user_id] = last_use
-                bot.loop.create_task(send_slot_reminder(interaction.user, last_use, self.lang))
+            if time_diff <= 0:
                 if not interaction.response.is_done():
-                    await interaction.response.send_message(
-                        t('slot_reminder_set', self.lang, {'minutes': minutes}),
-                        ephemeral=True
-                    )
-                try:
-                    self.disabled = True
-                    await interaction.message.edit(view=self.view)
-                except Exception as e:
-                    await log_error(f"Erro ao desabilitar botão de slot: {e}")
+                    await interaction.response.send_message(t('slot_already_available', self.lang), ephemeral=True)
                 return
 
-            # Se o slot já está disponível
+            slot_reminders[self.user_id] = remind_time
             if not interaction.response.is_done():
-                await interaction.response.send_message(
-                    t('slot_already_available', self.lang),
-                    ephemeral=True
-                )
+                await interaction.response.send_message(t('slot_reminder_set', self.lang, {'minutes': int(time_diff / 60) + 1}), ephemeral=True)
+            try:
+                self.disabled = True
+                await interaction.message.edit(view=self.view)
+            except Exception as e:
+                await log_error(f"Erro ao desabilitar botão de slot: {e}")
+            bot.loop.create_task(send_slot_reminder(interaction.user, remind_time, self.lang))
         except discord.NotFound:
-            # Interação expirada - não fazer nada
             pass
         except Exception as e:
             await log_error(f"Erro no callback do botão de slot: {e}")
             try:
                 if not interaction.response.is_done():
-                    await interaction.response.send_message(
-                        t('error_occurred', self.lang),
-                        ephemeral=True
-                    )
+                    await interaction.response.send_message(t('error_occurred', self.lang), ephemeral=True)
                 else:
-                    await interaction.followup.send(
-                        t('error_occurred', self.lang),
-                        ephemeral=True
-                    )
+                    await interaction.followup.send(t('error_occurred', self.lang), ephemeral=True)
             except discord.NotFound:
-                # Interação expirada ou inválida
                 pass
             except Exception as e:
                 await log_error(f"Erro ao enviar mensagem de erro: {e}")
@@ -1721,48 +1705,33 @@ class BoxReminderButton(discord.ui.Button):
 
             current_time = datetime.datetime.now()
             last_use = box_cooldowns.get(self.user_id, current_time)
-            
-            if current_time < last_use:
-                time_diff = last_use - current_time
-                minutes = int(time_diff.total_seconds() // 60) + 1
-                box_reminders[self.user_id] = last_use
-                bot.loop.create_task(send_box_reminder(interaction.user, last_use, self.lang))
+            remind_time = last_use + datetime.timedelta(minutes=5)
+            time_diff = (remind_time - current_time).total_seconds()
+
+            if time_diff <= 0:
                 if not interaction.response.is_done():
-                    await interaction.response.send_message(
-                        t('box_reminder_set', self.lang, {'minutes': minutes}),
-                        ephemeral=True
-                    )
-                try:
-                    self.disabled = True
-                    await interaction.message.edit(view=self.view)
-                except Exception as e:
-                    await log_error(f"Erro ao desabilitar botão de box: {e}")
+                    await interaction.response.send_message(t('box_already_available', self.lang), ephemeral=True)
                 return
 
-            # Se o box já está disponível
+            box_reminders[self.user_id] = remind_time
             if not interaction.response.is_done():
-                await interaction.response.send_message(
-                    t('box_already_available', self.lang),
-                    ephemeral=True
-                )
+                await interaction.response.send_message(t('box_reminder_set', self.lang, {'minutes': int(time_diff / 60) + 1}), ephemeral=True)
+            try:
+                self.disabled = True
+                await interaction.message.edit(view=self.view)
+            except Exception as e:
+                await log_error(f"Erro ao desabilitar botão de box: {e}")
+            bot.loop.create_task(send_box_reminder(interaction.user, remind_time, self.lang))
         except discord.NotFound:
-            # Interação expirada - não fazer nada
             pass
         except Exception as e:
             await log_error(f"Erro no callback do botão de lembrete de box: {e}")
             try:
                 if not interaction.response.is_done():
-                    await interaction.response.send_message(
-                        t('error_occurred', self.lang),
-                        ephemeral=True
-                    )
+                    await interaction.response.send_message(t('error_occurred', self.lang), ephemeral=True)
                 else:
-                    await interaction.followup.send(
-                        t('error_occurred', self.lang),
-                        ephemeral=True
-                    )
+                    await interaction.followup.send(t('error_occurred', self.lang), ephemeral=True)
             except discord.NotFound:
-                # Interação expirada ou inválida
                 pass
             except Exception as e:
                 await log_error(f"Erro ao enviar mensagem de erro (lembrete): {e}")
