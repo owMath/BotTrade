@@ -95,6 +95,7 @@ TRANSLATIONS = {
         'box_reminder_message': '🎮 O jogo da caixa está disponível novamente! Use !box para jogar.',
         'box_already_available': 'O jogo já está disponível! Use !box para jogar.',
         'not_your_game': 'Este não é o seu jogo! Use !box para iniciar seu próprio jogo.',
+        'box_success': '✅ Lembrete configurado com sucesso! Você receberá uma notificação quando o jogo da caixa estiver disponível novamente.',
 
         'resetbox_no_member': 'Por favor, mencione um usuário para resetar o cooldown do jogo da caixa.',
         'resetbox_success': 'O cooldown do jogo da caixa de {user} foi resetado com sucesso.',
@@ -135,6 +136,7 @@ TRANSLATIONS = {
         'slot_already_available': 'O slot já está disponível para uso!',
         'slot_reminder_set': 'Pronto! Vou te avisar quando puder jogar novamente em aproximadamente {minutes} minuto(s).',
         'slot_reminder_message': '⏰ **Lembrete:** O slot já está disponível para jogar novamente! Use o comando `!slot` para tentar a sorte!',
+        'slot_success': '✅ Lembrete configurado com sucesso! Você receberá uma notificação quando o slot estiver disponível novamente.',
         'slot_result_title': '🎰 Resultado do Slot',
         'slot_result_desc': '{user} girou a slot machine!',
         'slot_machine': 'Slot Machine',
@@ -263,6 +265,8 @@ TRANSLATIONS = {
         'help_abort': 'Cancela um trade ativo usando seu código.',
         'help_lang': 'Define seu idioma preferido. Opções disponíveis: pt (Português), en (Inglês), es (Espanhol).',
         
+        'reset_success': '✅ Reset Realizado com Sucesso',
+
         # MongoDB e outros
         'db_connected': '✅ Conexão com MongoDB estabelecida com sucesso!',
         'db_info': 'Os dados de trades e cooldowns de usuários estão sendo persistidos no MongoDB.',
@@ -388,6 +392,7 @@ TRANSLATIONS = {
         'resetbox_not_on_cooldown': '{user} is not on box game cooldown.',
         'help_box': 'Play the box game to earn trades.',
         'help_resetbox': 'Resets a user\'s box game cooldown.',
+        'box_success': '✅ Reminder set successfully! You will receive a notification when the box game is available again.',
         
         # Sistema de Slot (em inglês)
         'slot_cooldown_title': '🕒 Slot Cooldown Active',
@@ -397,6 +402,7 @@ TRANSLATIONS = {
         'slot_already_available': 'The slot is already available to use!',
         'slot_reminder_set': 'Done! I will notify you when you can play again in approximately {minutes} minute(s).',
         'slot_reminder_message': '⏰ **Reminder:** The slot is now available to play again! Use the `!slot` command to try your luck!',
+        'slot_success': '✅ Reminder set successfully! You will receive a notification when the slot is available again.',
         'slot_result_title': '🎰 Slot Result',
         'slot_result_desc': '{user} spun the slot machine!',
         'slot_machine': 'Slot Machine',
@@ -525,6 +531,8 @@ TRANSLATIONS = {
         'help_abort': 'Cancels an active trade using its code.',
         'help_lang': 'Sets your preferred language. Available options: pt (Portuguese), en (English), es (Spanish).',
         
+        'reset_success': '✅ Reset Completed Successfully',
+
         # MongoDB e outros
         'db_connected': '✅ MongoDB connection established successfully!',
         'db_info': 'User trade data and cooldowns are being persisted in MongoDB.',
@@ -649,6 +657,7 @@ TRANSLATIONS = {
         'resetbox_not_on_cooldown': '{user} no está en enfriamiento del juego de cajas.',
         'help_box': 'Juega al juego de cajas para ganar trades.',
         'help_resetbox': 'Reinicia el enfriamiento del juego de cajas de un usuario.',
+        'box_success': '✅ ¡Recordatorio configurado con éxito! Recibirás una notificación cuando el juego de cajas esté disponible nuevamente.',
         
          # Sistema de Slot (em espanhol)
         'slot_cooldown_title': '🕒 Enfriamiento de Tragamonedas Activo',
@@ -658,6 +667,7 @@ TRANSLATIONS = {
         'slot_already_available': '¡La tragamonedas ya está disponible para usar!',
         'slot_reminder_set': '¡Listo! Te avisaré cuando puedas jugar nuevamente en aproximadamente {minutes} minuto(s).',
         'slot_reminder_message': '⏰ **Recordatorio:** ¡La tragamonedas ya está disponible para jugar nuevamente! ¡Usa el comando `!slot` para probar tu suerte!',
+        'slot_success': '✅ ¡Recordatorio configurado con éxito! Recibirás una notificación cuando la tragamonedas esté disponible nuevamente.',
         'slot_result_title': '🎰 Resultado de la Tragamonedas',
         'slot_result_desc': '¡{user} giró la tragamonedas!',
         'slot_machine': 'Tragamonedas',
@@ -786,6 +796,8 @@ TRANSLATIONS = {
         'help_abort': 'Cancela un trade activo usando su código.',
         'help_lang': 'Establece tu idioma preferido. Opciones disponibles: pt (Portugués), en (Inglés), es (Español).',
         
+        'reset_success': '✅ Reset Completado con Éxito',
+
         # MongoDB e outros
         'db_connected': '✅ ¡Conexión con MongoDB establecida con éxito!',
         'db_info': 'Los datos de intercambios y tiempos de espera de los usuarios se están persistiendo en MongoDB.',
@@ -911,6 +923,7 @@ TRANSLATIONS = {
     'resetbox_not_on_cooldown': '{user} n\'est pas en cooldown du jeu des boîtes.',
     'help_box': 'Jouer au jeu des boîtes pour gagner des trades.',
     'help_resetbox': 'Réinitialise le cooldown de box d\'un utilisateur.',
+    'box_success': '✅ Rappel configuré avec succès! Vous recevrez une notification quand le jeu des boîtes sera à nouveau disponible.',
 
     # Système de Slot
     'slot_cooldown_title': '🕒 Cooldown du Slot Actif',
@@ -920,6 +933,7 @@ TRANSLATIONS = {
     'slot_already_available': 'Le slot est déjà disponible pour utilisation!',
     'slot_reminder_set': 'Prêt! Je vous préviendrai quand vous pourrez jouer à nouveau dans environ {minutes} minute(s).',
     'slot_reminder_message': '⏰ **Rappel:** Le slot est à nouveau disponible! Utilisez la commande `!slot`, pour tenter votre chance!',
+    'slot_success': '✅ Rappel configuré avec succès! Vous recevrez une notification quand le slot sera à nouveau disponible.',
     'slot_result_title': '🎰 Résultat du Slot',
     'slot_result_desc': '{user} a tourné la machine à sous!',
     'slot_machine': 'Machine à Sous',
@@ -979,6 +993,8 @@ TRANSLATIONS = {
     'admin_only': '❌ Cette commande est réservée aux administrateurs.',
     'wrong_channel': '❌ Cette commande doit être utilisée dans le canal {channel}.',
     'command_unavailable': '❌ Cette commande n\'est pas disponible dans ce contexte.',
+
+    'reset_success': '✅ Reset Réalisé avec Succès',
 
     # MongoDB et autres
     'db_connected': '✅ Connexion à MongoDB établie avec succès!',
@@ -1115,6 +1131,7 @@ TRANSLATIONS = {
     'resetbox_not_on_cooldown': '{user} ist nicht in der Abklingzeit des Kisten-Spiels.',
     'help_box': 'Spielen Sie das Kisten-Spiel, um Trades zu gewinnen.',
     'help_resetbox': 'Setzt die Abklingzeit der Box eines Benutzers zurück.',
+    'box_success': '✅ Erinnerung erfolgreich eingestellt! Sie erhalten eine Benachrichtigung, wenn das Boxenspiel wieder verfügbar ist.',
 
     # Slot-System
     'slot_cooldown_title': '🕒 Slot-Abklingzeit aktiv',
@@ -1124,6 +1141,7 @@ TRANSLATIONS = {
     'slot_already_available': 'Der Slot ist bereits verfügbar!',
     'slot_reminder_set': 'Fertig! Ich werde Sie benachrichtigen, wenn Sie in etwa {minutes} Minute(n) wieder spielen können.',
     'slot_reminder_message': '⏰ **Erinnerung:** Der Slot ist wieder verfügbar! Verwenden Sie den Befehl `!slot`, um Ihr Glück zu versuchen!',
+    'slot_success': '✅ Erinnerung erfolgreich eingestellt! Sie erhalten eine Benachrichtigung, wenn der Slot wieder verfügbar ist.',
     'slot_result_title': '🎰 Slot-Ergebnis',
     'slot_result_desc': '{user} hat den Slot gedreht!',
     'slot_machine': 'Spielautomat',
@@ -1183,6 +1201,8 @@ TRANSLATIONS = {
     'admin_only': '❌ Dieser Befehl ist nur für Administratoren verfügbar.',
     'wrong_channel': '❌ Dieser Befehl muss im Kanal {channel} verwendet werden.',
     'command_unavailable': '❌ Dieser Befehl ist in diesem Kontext nicht verfügbar.',
+
+    'reset_success': '✅ Reset Erfolgreich Durchgeführt',
 
     # MongoDB und andere
     'db_connected': '✅ MongoDB-Verbindung erfolgreich hergestellt!',
@@ -1319,6 +1339,7 @@ TRANSLATIONS = {
     'resetbox_not_on_cooldown': '{user} non è in cooldown per il gioco delle scatole.',
     'help_box': 'Gioca al gioco delle scatole per vincere trades.',
     'help_resetbox': 'Resetta il cooldown della box di un utente.',
+    'box_success': '✅ Promemoria configurato con successo! Riceverai una notifica quando il gioco delle scatole sarà di nuovo disponibile.',
 
     # Sistema Slot
     'slot_cooldown_title': '🕒 Cooldown dello Slot Attivo',
@@ -1328,6 +1349,7 @@ TRANSLATIONS = {
     'slot_already_available': 'Lo slot è già disponibile per l\'uso!',
     'slot_reminder_set': 'Pronto! Ti avviserò quando potrai giocare di nuovo tra circa {minutes} minuto(i).',
     'slot_reminder_message': '⏰ **Promemoria:** Lo slot è di nuovo disponibile! Usa il comando `!slot` per tentare la fortuna!',
+    'slot_success': '✅ Promemoria configurato con successo! Riceverai una notifica quando lo slot sarà di nuovo disponibile.',
     'slot_result_title': '🎰 Risultato dello Slot',
     'slot_result_desc': '{user} ha girato la slot machine!',
     'slot_machine': 'Slot Machine',
@@ -1387,6 +1409,8 @@ TRANSLATIONS = {
     'admin_only': '❌ Questo comando è disponibile solo per gli amministratori.',
     'wrong_channel': '❌ Questo comando deve essere usato nel canale {channel}.',
     'command_unavailable': '❌ Questo comando non è disponibile in questo contesto.',
+
+    'reset_success': '✅ Reset Completato con Successo',
 
     # MongoDB e altri
     'db_connected': '✅ Connessione a MongoDB stabilita con successo!',
@@ -1523,7 +1547,8 @@ TRANSLATIONS = {
     'resetbox_not_on_cooldown': '{user} nie jest w czasie oczekiwania gry w pudełka.',
     'help_box': 'Graj w grę w pudełka, aby wygrać wymiany.',
     'help_resetbox': 'Resetuje czas oczekiwania pudełka użytkownika.',
-
+    'box_success': '✅ Przypomnienie ustawione pomyślnie! Otrzymasz powiadomienie, gdy gra w pudełka będzie ponownie dostępna.',
+    
     # System Slotów
     'slot_cooldown_title': '🕒 Aktywny czas oczekiwania slotów',
     'slot_cooldown_desc': 'Musisz poczekać jeszcze **{minutes} minut i {seconds} sekund**, aby zagrać ponownie.',
@@ -1532,6 +1557,7 @@ TRANSLATIONS = {
     'slot_already_available': 'Sloty są już dostępne do użycia!',
     'slot_reminder_set': 'Gotowe! Powiadomię Cię, gdy będziesz mógł zagrać ponownie za około {minutes} minut(y).',
     'slot_reminder_message': '⏰ **Przypomnienie:** Sloty są ponownie dostępne! Użyj komendy `!slot`, aby spróbować szczęścia!',
+    'slot_success': '✅ Przypomnienie ustawione pomyślnie! Otrzymasz powiadomienie, gdy sloty będą ponownie dostępne.',
     'slot_result_title': '🎰 Wynik Slotów',
     'slot_result_desc': '{user} zakręcił maszyną do gry!',
     'slot_machine': 'Maszyna do Gry',
@@ -1599,6 +1625,8 @@ TRANSLATIONS = {
     'db_memory_warning': 'Bot działa z pamięcią. Dane zostaną utracone po ponownym uruchomieniu bota.',
     'db_solution': 'Skonfiguruj zmienną środowiskową `MONGO_URI` w pliku `.env`, aby włączyć przechowywanie danych.',
     'db_stats': '- Użytkownicy z wymianami: {users}\n- Użytkownicy w czasie oczekiwania: {cooldowns}\n- Aktywne wymiany: {active}\n- Użytkownicy z trwającymi wymianami: {in_progress}',
+
+    'reset_success': '✅ Reset Zakończony Pomyślnie',
 
     # Komendy językowe
     'current_language': 'Twój obecny język to: **{language}**',
