@@ -95,12 +95,18 @@ class GiveawayView(discord.ui.View):
     @discord.ui.button(label="Participar", style=discord.ButtonStyle.primary, emoji="🎉", custom_id="giveaway_join")
     async def join_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         lang = get_user_language(interaction.user.id)
+        
+        # Verificar se a interação ainda é válida
+        if interaction.response.is_done():
+            return
+            
         try:
             # Verificar se a mensagem ainda existe
             try:
                 message = await interaction.message.fetch()
             except discord.NotFound:
-                await interaction.response.send_message(t('giveaway_already_ended', lang), ephemeral=True)
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(t('giveaway_already_ended', lang), ephemeral=True)
                 return
 
             message_id = interaction.message.id
@@ -112,7 +118,8 @@ class GiveawayView(discord.ui.View):
                     break
                     
             if not giveaway_id or giveaway_id not in active_giveaways:
-                await interaction.response.send_message(t('giveaway_already_ended', lang), ephemeral=True)
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(t('giveaway_already_ended', lang), ephemeral=True)
                 return
                 
             # Verificar se o giveaway já acabou
@@ -126,12 +133,14 @@ class GiveawayView(discord.ui.View):
                         end_time = datetime.datetime.now()
                         
                 if end_time <= datetime.datetime.now():
-                    await interaction.response.send_message(t('giveaway_already_ended', lang), ephemeral=True)
+                    if not interaction.response.is_done():
+                        await interaction.response.send_message(t('giveaway_already_ended', lang), ephemeral=True)
                     return
             
             # Verificar se o usuário já está participando
             if interaction.user.id in active_giveaways[giveaway_id]['participants']:
-                await interaction.response.send_message(t('giveaway_already_joined', lang), ephemeral=True)
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(t('giveaway_already_joined', lang), ephemeral=True)
                 return
                 
             # Adicionar participante
@@ -155,6 +164,10 @@ class GiveawayView(discord.ui.View):
             else:
                 participantes_mencoes = [f"<@{pid}>" for pid in participantes]
 
+            # Primeiro responder à interação (IMPORTANTE: fazer isso ANTES de editar a mensagem)
+            if not interaction.response.is_done():
+                await interaction.response.send_message(t('giveaway_join_success', lang), ephemeral=True)
+
             try:
                 embed = interaction.message.embeds[0].copy()
                 embed.clear_fields()
@@ -162,25 +175,27 @@ class GiveawayView(discord.ui.View):
                 embed.description = embed.description.split("\n\nClique no botão abaixo")[0] + "\n\nClique no botão abaixo para participar!"
                 embed.add_field(name="Participantes", value="\n".join(participantes_mencoes) if participantes_mencoes else "Ninguém participou ainda.", inline=False)
                 
-                # Primeiro responder à interação
-                await interaction.response.send_message(t('giveaway_join_success', lang), ephemeral=True)
-                
                 # Depois editar a mensagem
                 await interaction.message.edit(embed=embed, view=self)
             except discord.NotFound:
-                # Se a mensagem não existir mais, apenas responder à interação
-                await interaction.response.send_message(t('giveaway_already_ended', lang), ephemeral=True)
+                # Se a mensagem não existir mais, não fazer nada (já respondemos à interação)
+                pass
             except Exception as e:
                 await log_error(f"Erro ao atualizar mensagem do giveaway: {e}")
-                # Se houver erro ao editar, pelo menos responder à interação
-                if not interaction.response.is_done():
-                    await interaction.response.send_message(t('giveaway_join_success', lang), ephemeral=True)
+                # Não tentar responder novamente, pois já respondemos acima
                 
+        except discord.NotFound:
+            # Interação expirada ou inválida - não fazer nada
+            pass
         except Exception as e:
             await log_error(f"Erro no botão de giveaway: {e}")
-            # Garantir que a interação seja respondida em caso de erro
-            if not interaction.response.is_done():
-                await interaction.response.send_message(t('command_error', lang), ephemeral=True)
+            # Tentar responder apenas se a interação ainda for válida
+            try:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(t('command_error', lang), ephemeral=True)
+            except discord.NotFound:
+                # Interação expirada - não fazer nada
+                pass
 
 def generate_code(length=6):
     """Gera um código aleatório para o trade"""
@@ -1216,75 +1231,87 @@ class SlotReminderButton(discord.ui.Button):
         
     async def callback(self, interaction):
         try:
-            # Verificar se quem clicou é o dono do botão
-            if interaction.user.id != self.user_id:
-                try:
-                    if not interaction.response.is_done():
-                        await interaction.response.send_message(
-                            t('not_your_button', self.lang),
-                            ephemeral=True
-                        )
-                    else:
-                        await interaction.followup.send(
-                            t('not_your_button', self.lang),
-                            ephemeral=True
-                        )
-                except discord.NotFound:
-                    # Interação expirada ou inválida
-                    pass
-                except Exception as e:
-                    await log_error(f"Erro ao responder interação (not_your_button): {e}")
+            # Verificar se a interação ainda é válida
+            if interaction.response.is_done():
                 return
-                    
-            # Calcular quando o lembrete deve ser enviado
+                
+            # Verificar se o usuário ainda pode usar o slot
             current_time = datetime.datetime.now()
-            time_diff = (self.slot_time - current_time).total_seconds()
+            last_use = slot_cooldowns.get(self.user_id, current_time)
             
-            if time_diff <= 0:
-                # O cooldown já acabou
-                try:
-                    if not interaction.response.is_done():
-                        await interaction.response.send_message(
-                            t('slot_already_available', self.lang),
-                            ephemeral=True
-                        )
-                    else:
-                        await interaction.followup.send(
-                            t('slot_already_available', self.lang),
-                            ephemeral=True
-                        )
-                except discord.NotFound:
-                    # Interação expirada ou inválida
-                    pass
-                except Exception as e:
-                    await log_error(f"Erro ao responder interação (already_available): {e}")
-                return
-                    
-            # Registrar o lembrete
-            slot_reminders[self.user_id] = self.slot_time
-            
-            # Confirmar com o usuário
-            try:
+            if current_time < last_use:
+                time_diff = last_use - current_time
+                minutes = int(time_diff.total_seconds() // 60)
+                seconds = int(time_diff.total_seconds() % 60)
+                
                 if not interaction.response.is_done():
                     await interaction.response.send_message(
-                        t('slot_reminder_set', self.lang, {
-                            'minutes': int(time_diff / 60)
+                        t('slot_cooldown_active', self.lang, {
+                            'minutes': minutes,
+                            'seconds': seconds
                         }),
                         ephemeral=True
                     )
-                else:
-                    await interaction.followup.send(
-                        t('slot_reminder_set', self.lang, {
-                            'minutes': int(time_diff / 60)
-                        }),
-                        ephemeral=True
-                    )
-            except discord.NotFound:
-                # Interação expirada ou inválida
-                pass
-            except Exception as e:
-                await log_error(f"Erro ao responder interação (reminder_set): {e}")
                 return
+            
+            # Verificar se o usuário tem trades disponíveis
+            if self.user_id not in user_trades or user_trades[self.user_id] <= 0:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(t('no_trades_available', self.lang), ephemeral=True)
+                return
+            
+            # Verificar se há trades ativos demais
+            active_count = sum(1 for code, info in active_trades.items() if info.get('user_id') == self.user_id)
+            if active_count >= 3:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(t('max_active_trades', self.lang, {'count': active_count}), ephemeral=True)
+                return
+            
+            # Verificar se o sistema está ocupado
+            if len(active_trades) > 10:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(t('system_busy', self.lang), ephemeral=True)
+                return
+            
+            # Gerar código único
+            code = generate_code()
+            while code in active_trades:
+                code = generate_code()
+            
+            # Atualizar cooldown
+            slot_cooldowns[self.user_id] = current_time + datetime.timedelta(minutes=5)
+            
+            # Atualizar no MongoDB
+            if db.is_connected():
+                db.set_last_slot_time(self.user_id, slot_cooldowns[self.user_id])
+            
+            # Registrar trade ativo
+            active_trades[code] = {
+                'user_id': self.user_id,
+                'start_time': current_time,
+                'expire_time': current_time + datetime.timedelta(minutes=30),
+                'status': 'active'
+            }
+            
+            users_with_active_trade[self.user_id] = code
+            
+            # Atualizar no MongoDB
+            if db.is_connected():
+                db.add_active_trade(code, self.user_id, current_time, current_time + datetime.timedelta(minutes=30))
+                db.set_user_active_trade(self.user_id, code)
+            
+            # Responder à interação
+            if not interaction.response.is_done():
+                await interaction.response.send_message(
+                    t('slot_success', self.lang, {
+                        'code': code,
+                        'minutes': 30
+                    }),
+                    ephemeral=True
+                )
+            
+            # Executar o processo de trade em background
+            bot.loop.create_task(run_trade_process(code, 30, 'time', 30))
             
             try:
                 # Desativar o botão após o clique
@@ -1295,6 +1322,9 @@ class SlotReminderButton(discord.ui.Button):
             
             # Agendar o lembrete
             bot.loop.create_task(send_slot_reminder(interaction.user, self.slot_time, self.lang))
+        except discord.NotFound:
+            # Interação expirada - não fazer nada
+            pass
         except Exception as e:
             await log_error(f"Erro no callback do botão de slot: {e}")
             try:
@@ -1720,75 +1750,87 @@ class BoxReminderButton(discord.ui.Button):
         
     async def callback(self, interaction):
         try:
-            # Verificar se quem clicou é o dono do botão
-            if interaction.user.id != self.user_id:
-                try:
-                    if not interaction.response.is_done():
-                        await interaction.response.send_message(
-                            t('not_your_button', self.lang),
-                            ephemeral=True
-                        )
-                    else:
-                        await interaction.followup.send(
-                            t('not_your_button', self.lang),
-                            ephemeral=True
-                        )
-                except discord.NotFound:
-                    # Interação expirada ou inválida
-                    pass
-                except Exception as e:
-                    await log_error(f"Erro ao responder interação (not_your_button): {e}")
+            # Verificar se a interação ainda é válida
+            if interaction.response.is_done():
                 return
                 
-            # Calcular quando o lembrete deve ser enviado
+            # Verificar se o usuário ainda pode usar o box
             current_time = datetime.datetime.now()
-            time_diff = (self.box_time - current_time).total_seconds()
+            last_use = box_cooldowns.get(self.user_id, current_time)
             
-            if time_diff <= 0:
-                # O cooldown já acabou
-                try:
-                    if not interaction.response.is_done():
-                        await interaction.response.send_message(
-                            t('box_already_available', self.lang),
-                            ephemeral=True
-                        )
-                    else:
-                        await interaction.followup.send(
-                            t('box_already_available', self.lang),
-                            ephemeral=True
-                        )
-                except discord.NotFound:
-                    # Interação expirada ou inválida
-                    pass
-                except Exception as e:
-                    await log_error(f"Erro ao responder interação (box_already_available): {e}")
-                return
+            if current_time < last_use:
+                time_diff = last_use - current_time
+                minutes = int(time_diff.total_seconds() // 60)
+                seconds = int(time_diff.total_seconds() % 60)
                 
-            # Registrar o lembrete
-            box_reminders[self.user_id] = self.box_time
-            
-            # Confirmar com o usuário
-            try:
                 if not interaction.response.is_done():
                     await interaction.response.send_message(
-                        t('box_reminder_set', self.lang, {
-                            'minutes': int(time_diff / 60)
+                        t('box_cooldown_active', self.lang, {
+                            'minutes': minutes,
+                            'seconds': seconds
                         }),
                         ephemeral=True
                     )
-                else:
-                    await interaction.followup.send(
-                        t('box_reminder_set', self.lang, {
-                            'minutes': int(time_diff / 60)
-                        }),
-                        ephemeral=True
-                    )
-            except discord.NotFound:
-                # Interação expirada ou inválida
-                pass
-            except Exception as e:
-                await log_error(f"Erro ao responder interação (box_reminder_set): {e}")
                 return
+            
+            # Verificar se o usuário tem trades disponíveis
+            if self.user_id not in user_trades or user_trades[self.user_id] <= 0:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(t('no_trades_available', self.lang), ephemeral=True)
+                return
+            
+            # Verificar se há trades ativos demais
+            active_count = sum(1 for code, info in active_trades.items() if info.get('user_id') == self.user_id)
+            if active_count >= 3:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(t('max_active_trades', self.lang, {'count': active_count}), ephemeral=True)
+                return
+            
+            # Verificar se o sistema está ocupado
+            if len(active_trades) > 10:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(t('system_busy', self.lang), ephemeral=True)
+                return
+            
+            # Gerar código único
+            code = generate_code()
+            while code in active_trades:
+                code = generate_code()
+            
+            # Atualizar cooldown
+            box_cooldowns[self.user_id] = current_time + datetime.timedelta(minutes=5)
+            
+            # Atualizar no MongoDB
+            if db.is_connected():
+                db.set_last_box_time(self.user_id, box_cooldowns[self.user_id])
+            
+            # Registrar trade ativo
+            active_trades[code] = {
+                'user_id': self.user_id,
+                'start_time': current_time,
+                'expire_time': current_time + datetime.timedelta(minutes=30),
+                'status': 'active'
+            }
+            
+            users_with_active_trade[self.user_id] = code
+            
+            # Atualizar no MongoDB
+            if db.is_connected():
+                db.add_active_trade(code, self.user_id, current_time, current_time + datetime.timedelta(minutes=30))
+                db.set_user_active_trade(self.user_id, code)
+            
+            # Responder à interação
+            if not interaction.response.is_done():
+                await interaction.response.send_message(
+                    t('box_success', self.lang, {
+                        'code': code,
+                        'minutes': 30
+                    }),
+                    ephemeral=True
+                )
+            
+            # Executar o processo de trade em background
+            bot.loop.create_task(run_trade_process(code, 30, 'time', 30))
             
             try:
                 # Desativar o botão após o clique
@@ -1799,6 +1841,9 @@ class BoxReminderButton(discord.ui.Button):
             
             # Agendar o lembrete
             bot.loop.create_task(send_box_reminder(interaction.user, self.box_time, self.lang))
+        except discord.NotFound:
+            # Interação expirada - não fazer nada
+            pass
         except Exception as e:
             await log_error(f"Erro no callback do botão de lembrete de box: {e}")
             try:
@@ -2269,21 +2314,43 @@ async def on_ready():
         load_data_from_mongodb()
         bot.loop.create_task(sync_data_to_mongodb())
         bot.loop.create_task(cleanup_expired_trades())
+        bot.loop.create_task(cleanup_expired_views())  # Adicionar limpeza de views
         # --- REGISTRAR VIEWS PERSISTENTES DAS APOSTAS ---
         if db.is_connected():
             try:
                 bets = db.bets_collection.find({'status': {'$in': ['open', 'locked']}})
                 bets_list = list(bets)  # Converter para lista para poder contar
+                
+                # Limitar o número de views de apostas para evitar erro de limite
+                max_bet_views = 50  # Limite máximo de views de apostas
+                if len(bets_list) > max_bet_views:
+                    print(f"⚠️ Limite de views de apostas excedido. Registrando apenas {max_bet_views} de {len(bets_list)} apostas.")
+                    bets_list = bets_list[:max_bet_views]
+                
                 for bet in bets_list:
-                    view = BetVoteView(bet['bet_id'], bet['options'], bet['status'] != 'open')
-                    bot.add_view(view)
+                    try:
+                        view = BetVoteView(bet['bet_id'], bet['options'], bet['status'] != 'open')
+                        bot.add_view(view)
+                    except Exception as view_error:
+                        print(f"❌ Erro ao registrar view da aposta {bet['bet_id']}: {view_error}")
+                        continue
+                        
                 print(f"Views de apostas persistentes registradas: {len(bets_list)} bets.")
             except Exception as e:
                 print(f"Erro ao registrar views persistentes: {e}")
+                if "maximum number of children exceeded" in str(e):
+                    print("⚠️ Limite de views persistentes excedido. Considere limpar views antigas ou reduzir o número de apostas ativas.")
             # --- REGISTRAR VIEWS PERSISTENTES DOS GIVEAWAYS ---
             try:
                 bot.add_view(GiveawayView())  # Registrar view persistente para todos os sorteios
                 giveaways = db.get_all_active_giveaways()
+                
+                # Limitar o número de giveaways para evitar erro de limite
+                max_giveaway_views = 20  # Limite máximo de giveaways ativos
+                if len(giveaways) > max_giveaway_views:
+                    print(f"⚠️ Limite de giveaways excedido. Processando apenas {max_giveaway_views} de {len(giveaways)} giveaways.")
+                    giveaways = giveaways[:max_giveaway_views]
+                
                 for g in giveaways:
                     giveaway_id = g['_id']
                     end_time = g['end_time']
@@ -2612,37 +2679,48 @@ class DiceReminderButton(discord.ui.Button):
         self.remind_time = remind_time
     async def callback(self, interaction):
         try:
+            # Verificar se a interação ainda é válida
+            if interaction.response.is_done():
+                return
+                
             if interaction.user.id != self.user_id:
                 if not interaction.response.is_done():
                     await interaction.response.send_message(t('not_your_button', self.lang), ephemeral=True)
-                else:
-                    await interaction.followup.send(t('not_your_button', self.lang), ephemeral=True)
                 return
+                
             current_time = datetime.datetime.now()
             time_diff = (self.remind_time - current_time).total_seconds()
+            
             if time_diff <= 0:
                 if not interaction.response.is_done():
                     await interaction.response.send_message(t('dice_already_available', self.lang), ephemeral=True)
-                else:
-                    await interaction.followup.send(t('dice_already_available', self.lang), ephemeral=True)
                 return
+                
             user_dice_reminders[self.user_id] = self.remind_time
+            
             if not interaction.response.is_done():
                 await interaction.response.send_message(t('dice_reminder_set', self.lang, {'minutes': int(time_diff / 60)}), ephemeral=True)
-            else:
-                await interaction.followup.send(t('dice_reminder_set', self.lang, {'minutes': int(time_diff / 60)}), ephemeral=True)
-            self.disabled = True
-            await interaction.message.edit(view=self.view)
+            
+            try:
+                self.disabled = True
+                await interaction.message.edit(view=self.view)
+            except Exception as e:
+                await log_error(f"Erro ao desabilitar botão de dice: {e}")
+                
             bot.loop.create_task(send_dice_reminder(interaction.user, self.remind_time, self.lang))
+        except discord.NotFound:
+            # Interação expirada - não fazer nada
+            pass
         except Exception as e:
             await log_error(f"Erro no callback do botão de dado: {e}")
             try:
                 if not interaction.response.is_done():
                     await interaction.response.send_message(t('error_occurred', self.lang), ephemeral=True)
-                else:
-                    await interaction.followup.send(t('error_occurred', self.lang), ephemeral=True)
-            except:
+            except discord.NotFound:
+                # Interação expirada - não fazer nada
                 pass
+            except Exception as e:
+                await log_error(f"Erro ao enviar mensagem de erro (dice): {e}")
 
 class DiceReminderView(discord.ui.View):
     def __init__(self, user_id, lang):
@@ -2770,20 +2848,45 @@ class BetVoteView(View):
 
     def make_callback(self, option_id):
         async def callback(interaction):
-            user_id = interaction.user.id
-            lang = get_user_language(user_id)
-            bet = db.get_bet(self.bet_id)
-            if not bet or bet['status'] != 'open':
-                await interaction.response.send_message(t('bet_closed', lang), ephemeral=True)
-                return
-            # Checar se já votou
-            for opt in bet['options']:
-                if user_id in opt['votes']:
-                    if opt['id'] == option_id:
-                        await interaction.response.send_message(t('bet_already_voted', lang), ephemeral=True)
-                        return
-            db.add_vote(self.bet_id, option_id, user_id)
-            await interaction.response.send_message(t('bet_vote_success', lang), ephemeral=True)
+            try:
+                # Verificar se a interação ainda é válida
+                if interaction.response.is_done():
+                    return
+                    
+                user_id = interaction.user.id
+                lang = get_user_language(user_id)
+                bet = db.get_bet(self.bet_id)
+                
+                if not bet or bet['status'] != 'open':
+                    if not interaction.response.is_done():
+                        await interaction.response.send_message(t('bet_closed', lang), ephemeral=True)
+                    return
+                    
+                # Checar se já votou
+                for opt in bet['options']:
+                    if user_id in opt['votes']:
+                        if opt['id'] == option_id:
+                            if not interaction.response.is_done():
+                                await interaction.response.send_message(t('bet_already_voted', lang), ephemeral=True)
+                            return
+                            
+                db.add_vote(self.bet_id, option_id, user_id)
+                
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(t('bet_vote_success', lang), ephemeral=True)
+            except discord.NotFound:
+                # Interação expirada - não fazer nada
+                pass
+            except Exception as e:
+                await log_error(f"Erro no callback do botão de aposta: {e}")
+                try:
+                    if not interaction.response.is_done():
+                        await interaction.response.send_message(t('error_occurred', lang), ephemeral=True)
+                except discord.NotFound:
+                    # Interação expirada - não fazer nada
+                    pass
+                except Exception as e:
+                    await log_error(f"Erro ao enviar mensagem de erro (aposta): {e}")
         return callback
 
 @bot.command(name='bet')
@@ -3096,3 +3199,35 @@ async def on_command_error(ctx, error):
     else:
         await log_error(f"Erro em comando: {error}")
         await ctx.send(t('command_error', lang))
+
+async def cleanup_expired_views():
+    """Limpa views expiradas para evitar acúmulo"""
+    try:
+        if db.is_connected():
+            # Limpar giveaways expirados
+            current_time = datetime.datetime.now()
+            expired_giveaways = []
+            
+            for giveaway_id, giveaway_info in active_giveaways.items():
+                end_time = giveaway_info.get('end_time')
+                if isinstance(end_time, str):
+                    try:
+                        end_time = datetime.datetime.fromisoformat(end_time)
+                    except:
+                        continue
+                
+                if end_time and end_time <= current_time:
+                    expired_giveaways.append(giveaway_id)
+            
+            # Remover giveaways expirados
+            for giveaway_id in expired_giveaways:
+                del active_giveaways[giveaway_id]
+                print(f"🧹 Giveaway expirado removido: {giveaway_id}")
+            
+            # Limpar apostas antigas (mais de 7 dias)
+            week_ago = current_time - datetime.timedelta(days=7)
+            # Aqui você pode adicionar lógica para limpar apostas antigas do banco
+            
+        print(f"🧹 Limpeza de views concluída. {len(expired_giveaways)} giveaways expirados removidos.")
+    except Exception as e:
+        print(f"❌ Erro na limpeza de views: {e}")
