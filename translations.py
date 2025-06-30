@@ -47,6 +47,9 @@ TRANSLATIONS = {
         'help_abort': '!abort = cancelar um code.',
 
         'reminder_set': 'Você receberá um lembrete em {minutes} minutos quando puder jogar novamente.',
+        'slot_reminder_already_set': 'Você já tem um lembrete agendado para o slot!',
+        'box_reminder_already_set': 'Você já tem um lembrete agendado para o jogo da caixa!',
+        'dice_reminder_already_set': 'Você já tem um lembrete agendado para o dado!',
 
         'bet_vote_success': 'Voto registrado com sucesso!',
         'bet_already_voted': 'Você já votou nesta opção.',
@@ -94,7 +97,7 @@ TRANSLATIONS = {
         'box_cooldown_desc': 'Você precisa esperar {minutes} minutos e {seconds} segundos para jogar novamente.',
         'box_reminder_button': 'Lembrar quando disponível',
         'box_reminder_set': 'Você receberá um lembrete em {minutes} minutos quando puder jogar novamente.',
-        'box_reminder_message': '🎮 O jogo da caixa está disponível novamente! Use !box para jogar.',
+        'box_reminder_message': '⏰ O jogo da caixa está disponível novamente! Use `!box` para jogar.',
         'box_already_available': 'O jogo já está disponível! Use !box para jogar.',
         'not_your_game': 'Este não é o seu jogo! Use !box para iniciar seu próprio jogo.',
         'box_success': '✅ Lembrete configurado com sucesso! Você receberá uma notificação quando o jogo da caixa estiver disponível novamente.',
@@ -136,7 +139,7 @@ TRANSLATIONS = {
         'slot_reminder_button': 'Lembrar-me quando disponível',
         'not_your_button': 'Este botão não é para você!',
         'slot_already_available': 'O slot já está disponível para uso!',
-        'slot_reminder_set': 'Pronto! Vou te avisar quando puder jogar novamente em aproximadamente {minutes} minuto(s).',
+        'slot_reminder_set': 'Vou te avisar quando puder jogar novamente em aproximadamente {minutes} minuto(s).',
         'slot_reminder_message': '⏰ O slot já está disponível para jogar novamente! Use o comando `!slot` para tentar a sorte!',
         'slot_success': '✅ Lembrete configurado com sucesso! Você receberá uma notificação quando o slot estiver disponível novamente.',
         'slot_result_title': '🎰 Resultado do Slot',
@@ -324,6 +327,9 @@ TRANSLATIONS = {
         'help_checktrademember': 'Checks how many trades a user has and shows information about their last daily claim.',
     
         'reminder_set': 'You will receive a reminder in {minutes} minutes when you can play again.',
+        'slot_reminder_already_set': 'You already have a reminder set for the slot!',
+        'box_reminder_already_set': 'You already have a reminder set for the box game!',
+        'dice_reminder_already_set': 'You already have a reminder set for the dice!',
 
         'giveaway_new_title': '🎉 New Giveaway!',
         'giveaway_new_desc': 'Prize: {prize}\n\nWinners: {winners}\nDuration: {duration} minutes\n\nClick the button below to participate!\n{description}',
@@ -592,6 +598,9 @@ TRANSLATIONS = {
         'help_checktrademember': 'Verifica cuántos trades tiene un usuario y muestra información sobre su último claim diario.',
 
         'reminder_set': 'Recibirás un recordatorio en {minutes} minutos cuando puedas jugar de nuevo.',
+        'slot_reminder_already_set': '¡Ya tienes un recordatorio programado para la tragamonedas!',
+        'box_reminder_already_set': '¡Ya tienes un recordatorio programado para el juego de las cajas!',
+        'dice_reminder_already_set': '¡Ya tienes un recordatorio programado para el dado!',
 
         'giveaway_new_title': '🎉 ¡Nuevo Sorteo!',
         'giveaway_new_desc': 'Premio: {prize}\n\nGanadores: {winners}\nDuración: {duration} minutos\n\n¡Haz clic en el botón de abajo para participar!\n{description}',
@@ -859,6 +868,9 @@ TRANSLATIONS = {
     'help_checktrademember': 'Vérifie le nombre de trades d\'un utilisateur et affiche des informations sur sa dernière réclamation quotidienne.',
 
     'reminder_set': 'Vous recevrez un rappel dans {minutes} minutes lorsque vous pourrez rejouer.',
+    'slot_reminder_already_set': 'Vous avez déjà un rappel programmé pour la machine à sous !',
+    'box_reminder_already_set': 'Vous avez déjà un rappel programmé pour le jeu des boîtes !',
+    'dice_reminder_already_set': 'Vous avez déjà un rappel programmé pour le dé !',
 
     'giveaway_new_title': '🎉 Nouveau Giveaway !',
     'giveaway_new_desc': 'Prix : {prize}\n\nGagnants : {winners}\nDurée : {duration} minutes\n\nCliquez sur le bouton ci-dessous pour participer !\n{description}',
@@ -1059,6 +1071,9 @@ TRANSLATIONS = {
     'help_checktrademember': 'Überprüft die Anzahl der Trades eines Benutzers und zeigt Informationen über seinen letzten täglichen Claim an.',
 
     'reminder_set': 'Du erhältst in {minutes} Minuten eine Erinnerung, wenn du wieder spielen kannst.',
+    'slot_reminder_already_set': 'Du hast bereits eine Erinnerung für den Slot gesetzt!',
+    'box_reminder_already_set': 'Du hast bereits eine Erinnerung für das Boxenspiel gesetzt!',
+    'dice_reminder_already_set': 'Du hast bereits eine Erinnerung für den Würfel gesetzt!',
 
     'giveaway_new_title': '🎉 Neues Giveaway!',
     'giveaway_new_desc': 'Preis: {prize}\n\nGewinner: {winners}\nDauer: {duration} Minuten\n\nKlicke unten auf den Button, um teilzunehmen!\n{description}',
@@ -1269,6 +1284,9 @@ TRANSLATIONS = {
     'help_checktrademember': 'Verifica il numero di trades di un utente e mostra informazioni sul suo ultimo claim giornaliero.',
 
     'reminder_set': 'Riceverai un promemoria tra {minutes} minuti quando potrai giocare di nuovo.',
+    'slot_reminder_already_set': 'Hai già un promemoria impostato per la slot!',
+    'box_reminder_already_set': 'Hai già un promemoria impostato per il gioco delle scatole!',
+    'dice_reminder_already_set': 'Hai già un promemoria impostato per il dado!',
 
     'giveaway_new_title': '🎉 Nuovo Giveaway!',
     'giveaway_new_desc': 'Premio: {prize}\n\nVincitori: {winners}\nDurata: {duration} minuti\n\nClicca sul pulsante qui sotto per partecipare!\n{description}',
@@ -1479,6 +1497,9 @@ TRANSLATIONS = {
     'help_checktrademember': 'Sprawdza liczbę wymian użytkownika i pokazuje informacje o jego ostatnim dziennym odebraniu.',
 
     'reminder_set': 'Otrzymasz przypomnienie za {minutes} minut, gdy będziesz mógł zagrać ponownie.',
+    'slot_reminder_already_set': 'Masz już ustawione przypomnienie dla slotu!',
+    'box_reminder_already_set': 'Masz już ustawione przypomnienie dla gry w skrzynki!',
+    'dice_reminder_already_set': 'Masz już ustawione przypomnienie dla kości!',
 
     'bet_vote_success': 'Głos został pomyślnie zarejestrowany!',
     'bet_already_voted': 'Już zagłosowałeś na tę opcję.',

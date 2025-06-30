@@ -1269,8 +1269,10 @@ class SlotReminderButton(discord.ui.Button):
                 return
 
             slot_reminders[self.user_id] = remind_time
+            minutes = int(time_diff // 60)
+            seconds = int(time_diff % 60)
             if not interaction.response.is_done():
-                await interaction.response.send_message(t('slot_reminder_set', self.lang, {'minutes': int(time_diff / 60) + 1}), ephemeral=True)
+                await interaction.response.send_message(t('slot_reminder_set', self.lang, {'minutes': minutes, 'seconds': seconds}), ephemeral=True)
             try:
                 self.disabled = True
                 await interaction.message.edit(view=self.view)
@@ -1714,8 +1716,10 @@ class BoxReminderButton(discord.ui.Button):
                 return
 
             box_reminders[self.user_id] = remind_time
+            minutes = int(time_diff // 60)
+            seconds = int(time_diff % 60)
             if not interaction.response.is_done():
-                await interaction.response.send_message(t('box_reminder_set', self.lang, {'minutes': int(time_diff / 60) + 1}), ephemeral=True)
+                await interaction.response.send_message(t('box_reminder_set', self.lang, {'minutes': minutes, 'seconds': seconds}), ephemeral=True)
             try:
                 self.disabled = True
                 await interaction.message.edit(view=self.view)
@@ -2615,14 +2619,16 @@ class DiceReminderButton(discord.ui.Button):
                 
             user_dice_reminders[self.user_id] = self.remind_time
             
+            minutes = int(time_diff // 60)
+            seconds = int(time_diff % 60)
             if not interaction.response.is_done():
-                await interaction.response.send_message(t('dice_reminder_set', self.lang, {'minutes': int(time_diff / 60)}), ephemeral=True)
+                await interaction.response.send_message(t('dice_reminder_set', self.lang, {'minutes': minutes, 'seconds': seconds}), ephemeral=True)
             
             try:
                 self.disabled = True
                 await interaction.message.edit(view=self.view)
             except Exception as e:
-                await log_error(f"Erro ao desabilitar botão de dice: {e}")
+                await log_error(f"Erro ao desabilitar botão de dado: {e}")
                 
             bot.loop.create_task(send_dice_reminder(interaction.user, self.remind_time, self.lang))
         except discord.NotFound:
