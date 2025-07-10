@@ -1095,13 +1095,182 @@ class Database:
             return False
     
     def reset_box_cooldown(self, user_id):
-        """Reseta o cooldown do box de um usuário."""
+        """Reseta o cooldown do box game de um usuário."""
         if not self.is_connected():
             return False
+            
         try:
-            result = self.box_cooldowns_collection.delete_one({'user_id': user_id})
-            return result.deleted_count > 0
+            self.box_cooldowns_collection.delete_one({'user_id': user_id})
+            return True
         except Exception as e:
             print(f"❌ Erro ao resetar cooldown de box do usuário {user_id}: {e}")
             return False
+
+    # ===============================================
+    # Operações para Guess the Number
+    # ===============================================
+    
+    def save_guess_game(self, game_id, game_info):
+        """Salva um jogo de Guess the Number no banco de dados."""
+        if not self.is_connected():
+            return False
+            
+        try:
+            # Criar coleção se não existir
+            if not hasattr(self, 'guess_games_collection'):
+                self.guess_games_collection = self.db['guess_games']
+                self.guess_games_collection.create_index('game_id', unique=True)
+            
+            # Converter datetime para formato compatível
+            game_data = game_info.copy()
+            if 'created_at' in game_data and isinstance(game_data['created_at'], datetime.datetime):
+                game_data['created_at'] = game_data['created_at']
+            
+            self.guess_games_collection.update_one(
+                {'game_id': game_id},
+                {'$set': game_data},
+                upsert=True
+            )
+            return True
+        except Exception as e:
+            print(f"❌ Erro ao salvar jogo de guess {game_id}: {e}")
+            return False
+    
+    def get_guess_game(self, game_id):
+        """Obtém um jogo de Guess the Number pelo ID."""
+        if not self.is_connected():
+            return None
+            
+        try:
+            if not hasattr(self, 'guess_games_collection'):
+                self.guess_games_collection = self.db['guess_games']
+            
+            result = self.guess_games_collection.find_one({'game_id': game_id})
+            return result
+        except Exception as e:
+            print(f"❌ Erro ao obter jogo de guess {game_id}: {e}")
+            return None
+    
+    def get_all_active_guess_games(self):
+        """Obtém todos os jogos ativos de Guess the Number."""
+        if not self.is_connected():
+            return {}
+            
+        try:
+            if not hasattr(self, 'guess_games_collection'):
+                self.guess_games_collection = self.db['guess_games']
+            
+            result = {}
+            for doc in self.guess_games_collection.find({'status': 'active'}):
+                result[doc['game_id']] = doc
+            return result
+        except Exception as e:
+            print(f"❌ Erro ao obter jogos ativos de guess: {e}")
+            return {}
+    
+    def remove_guess_game(self, game_id):
+        """Remove um jogo de Guess the Number do banco de dados."""
+        if not self.is_connected():
+            return False
+            
+        try:
+            if not hasattr(self, 'guess_games_collection'):
+                self.guess_games_collection = self.db['guess_games']
+            
+            self.guess_games_collection.delete_one({'game_id': game_id})
+            return True
+        except Exception as e:
+            print(f"❌ Erro ao remover jogo de guess {game_id}: {e}")
+            return False
+    
+    def update_guess_game_status(self, game_id, status):
+        """Atualiza o status de um jogo de Guess the Number."""
+        if not self.is_connected():
+            return False
+            
+        try:
+            if not hasattr(self, 'guess_games_collection'):
+                self.guess_games_collection = self.db['guess_games']
+            
+            self.guess_games_collection.update_one(
+                {'game_id': game_id},
+                {'$set': {'status': status}}
+            )
+            return True
+        except Exception as e:
+            print(f"❌ Erro ao atualizar status do jogo de guess {game_id}: {e}")
+            return False
+    
+    def add_guess_attempt(self, game_id, user_id, guess):
+        """Adiciona uma tentativa de um usuário em um jogo de Guess the Number."""
+        if not self.is_connected():
+            return False
+            
+        try:
+            if not hasattr(self, 'guess_games_collection'):
+                self.guess_games_collection = self.db['guess_games']
+            
+            self.guess_games_collection.update_one(
+                {'game_id': game_id},
+                {'$set': {f'attempts.{user_id}': guess}}
+            )
+            return True
+        except Exception as e:
+            print(f"❌ Erro ao adicionar tentativa de guess {game_id}: {e}")
+            return False
+    
+    def set_guess_winner(self, game_id, user_id):
+        """Define o ganhador de um jogo de Guess the Number."""
+        if not self.is_connected():
+            return False
+            
+        try:
+            if not hasattr(self, 'guess_games_collection'):
+                self.guess_games_collection = self.db['guess_games']
+            
+            self.guess_games_collection.update_one(
+                {'game_id': game_id},
+                {'$set': {'winner': user_id, 'status': 'won'}}
+            )
+            return True
+        except Exception as e:
+            print(f"❌ Erro ao definir ganhador do jogo de guess {game_id}: {e}")
+            return False
+    
+    def get_guess_game_by_channel(self, channel_id):
+        """Obtém um jogo ativo de Guess the Number pelo ID do canal."""
+        if not self.is_connected():
+            return None
+            
+        try:
+            if not hasattr(self, 'guess_games_collection'):
+                self.guess_games_collection = self.db['guess_games']
+            
+            result = self.guess_games_collection.find_one({
+                'channel_id': channel_id,
+                'status': 'active'
+            })
+            return result
+        except Exception as e:
+            print(f"❌ Erro ao obter jogo de guess pelo canal {channel_id}: {e}")
+            return None
+    
+    def cleanup_expired_guess_games(self, hours=24):
+        """Remove jogos de Guess the Number expirados (mais de X horas)."""
+        if not self.is_connected():
+            return 0
+            
+        try:
+            if not hasattr(self, 'guess_games_collection'):
+                self.guess_games_collection = self.db['guess_games']
+            
+            cutoff_time = datetime.datetime.now() - datetime.timedelta(hours=hours)
+            result = self.guess_games_collection.delete_many({
+                'created_at': {'$lt': cutoff_time},
+                'status': {'$in': ['active', 'ended']}
+            })
+            return result.deleted_count
+        except Exception as e:
+            print(f"❌ Erro ao limpar jogos expirados de guess: {e}")
+            return 0
         

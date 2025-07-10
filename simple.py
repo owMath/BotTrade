@@ -97,6 +97,9 @@ slot_reminders = {}
 box_cooldowns = {}
 box_reminders = {}
 
+# Sistema de Guess the Number - novos dicionários
+active_guess_games = {}
+
 # Semáforo para limitar o número de trades simultâneos
 MAX_CONCURRENT_TRADES = 2
 trade_semaphore = asyncio.Semaphore(MAX_CONCURRENT_TRADES)
@@ -108,6 +111,534 @@ user_dice_reminders = {}
 
 # Dicionário para armazenar giveaways ativos
 active_giveaways = {}
+
+# ===============================================
+# Sistema de Guess the Number
+# ===============================================
+
+# Dicionários para armazenar informações do Guess the Number
+active_guess_games = {}
+guess_game_settings = {}
+guess_dm_enabled = True  # Padrão: DMs habilitadas
+guess_lock_role = None  # Role para bloquear canal quando alguém acertar
+
+class GuessNumberView(discord.ui.View):
+    def __init__(self, game_id, lang):
+        super().__init__(timeout=None)
+        self.game_id = game_id
+        self.lang = lang
+        # Adiciona o botão dinamicamente para permitir tradução
+        self.add_item(self.make_guess_button())
+
+    def make_guess_button(self):
+        lang = self.lang
+        label = t('guess_button_label', lang)
+        class _GuessButton(discord.ui.Button):
+            def __init__(self):
+                super().__init__(label=label, style=discord.ButtonStyle.primary, custom_id="guess_try")
+            async def callback(self, interaction):
+                return await GuessNumberView.guess_button_callback(self.view, interaction, self)
+        return _GuessButton()
+
+    @staticmethod
+    async def guess_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        try:
+            if interaction.response.is_done():
+                return
+            if self.game_id not in active_guess_games:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(t('guess_game_ended', self.lang), ephemeral=True)
+                return
+            user_lang = get_user_language(interaction.user.id)
+            modal = GuessNumberModal(self.game_id, user_lang)
+            if not interaction.response.is_done():
+                await interaction.response.send_modal(modal)
+        except discord.NotFound:
+            pass
+        except Exception as e:
+            await log_error(f"Erro no botão de guess: {e}")
+            try:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(t('error_occurred', self.lang), ephemeral=True)
+            except discord.NotFound:
+                pass
+            except Exception as e:
+                await log_error(f"Erro ao enviar mensagem de erro (guess): {e}")
+
+class GuessNumberModal(discord.ui.Modal):
+    def __init__(self, game_id, lang):
+        super().__init__(title=t('guess_modal_title', lang))
+        self.game_id = game_id
+        self.lang = lang
+        self.guess_input = discord.ui.TextInput(
+            label=t('guess_modal_label', lang),
+            placeholder=t('guess_modal_placeholder', lang),
+            min_length=1,
+            max_length=10,
+            required=True
+        )
+        self.add_item(self.guess_input)
+        
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            # Verificar se a interação ainda é válida
+            if interaction.response.is_done():
+                return
+                
+            # Verificar se o jogo ainda está ativo
+            if self.game_id not in active_guess_games:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(t('guess_game_ended', self.lang), ephemeral=True)
+                return
+                
+            game = active_guess_games[self.game_id]
+            
+            # Pega o idioma do usuário na hora da interação
+            user_lang = get_user_language(interaction.user.id)
+            
+            user_id = interaction.user.id
+            # Remover limitação de uma tentativa por usuário
+            # (não verifica mais se user_id in game['attempts'])
+            
+            # Validar entrada
+            try:
+                guess = int(self.guess_input.value)
+            except ValueError:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(t('guess_invalid_number', user_lang), ephemeral=True)
+                return
+                
+            # Verificar se está dentro do range
+            if guess < game['min_number'] or guess > game['max_number']:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(t('guess_out_of_range', user_lang, {
+                        'min': game['min_number'],
+                        'max': game['max_number']
+                    }), ephemeral=True)
+                return
+                
+            # Registrar tentativa (agora pode sobrescrever)
+            game['attempts'][user_id] = guess
+            
+            # Verificar se acertou
+            if guess == game['target_number']:
+                # Usuário acertou!
+                game['winner'] = user_id
+                game['status'] = 'won'
+                
+                # Dar trades ao ganhador
+                if user_id not in user_trades:
+                    user_trades[user_id] = 0
+                    
+                user_trades[user_id] += game['trades_reward']
+                
+                # Atualizar no MongoDB
+                if db.is_connected():
+                    db.increment_user_trades(user_id, game['trades_reward'])
+                
+                # Enviar DM se habilitado
+                if guess_dm_enabled:
+                    try:
+                        embed = discord.Embed(
+                            title=t('guess_win_dm_title', user_lang),
+                            description=t('guess_win_dm_desc', user_lang, {
+                                'number': game['target_number'],
+                                'trades': game['trades_reward'],
+                                'total': user_trades[user_id]
+                            }),
+                            color=0x00ff00
+                        )
+                        await interaction.user.send(embed=embed)
+                    except discord.Forbidden:
+                        pass
+                    except Exception as e:
+                        await log_error(f"Erro ao enviar DM para ganhador: {e}")
+                
+                # Bloquear canal se role configurado
+                if guess_lock_role:
+                    try:
+                        channel = interaction.channel
+                        overwrite = channel.overwrites_for(interaction.guild.default_role)
+                        overwrite.send_messages = False
+                        await channel.set_permissions(interaction.guild.default_role, overwrite=overwrite)
+                    except Exception as e:
+                        await log_error(f"Erro ao bloquear canal: {e}")
+                
+                # Responder com vitória
+                embed = discord.Embed(
+                    title=t('guess_win_title', user_lang),
+                    description=t('guess_win_desc', user_lang, {
+                        'user': interaction.user.mention,
+                        'number': game['target_number'],
+                        'trades': game['trades_reward']
+                    }),
+                    color=0x00ff00
+                )
+                
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(embed=embed)
+                
+                # Remover jogo ativo
+                del active_guess_games[self.game_id]
+                
+                # Atualizar no MongoDB
+                if db.is_connected():
+                    db.remove_guess_game(self.game_id)
+                    
+            else:
+                # Usuário errou - dar dica
+                hint = ""
+                if guess < game['target_number']:
+                    hint = t('guess_hint_higher', user_lang)
+                else:
+                    hint = t('guess_hint_lower', user_lang)
+                
+                embed = discord.Embed(
+                    title=t('guess_wrong_title', user_lang),
+                    description=t('guess_wrong_desc', user_lang, {
+                        'guess': guess,
+                        'hint': hint
+                    }),
+                    color=0xff9900
+                )
+                
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(embed=embed, ephemeral=True)
+                    
+        except discord.NotFound:
+            # Interação expirada - não fazer nada
+            pass
+        except Exception as e:
+            await log_error(f"Erro no modal de guess: {e}")
+            try:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(t('error_occurred', self.lang), ephemeral=True)
+            except discord.NotFound:
+                pass
+            except Exception as e:
+                await log_error(f"Erro ao enviar mensagem de erro (modal): {e}")
+
+@bot.command(name='gg')
+@commands.has_permissions(administrator=True)
+async def guess_game_command(ctx, action: str, *args):
+    """Comando principal para gerenciar o Guess the Number"""
+    lang = get_user_language(ctx.author.id)
+    
+    try:
+        if action == 'start':
+            await guess_start_command(ctx, args, lang)
+        elif action == 'hint':
+            await guess_hint_command(ctx, args, lang)
+        elif action == 'setup':
+            await guess_setup_command(ctx, args, lang)
+        elif action == 'end':
+            await guess_end_command(ctx, args, lang)
+        else:
+            await ctx.send(t('guess_invalid_action', lang))
+    except Exception as e:
+        await log_error(f"Erro no comando guess game: {e}")
+        await ctx.send(t('command_error', lang))
+
+async def guess_start_command(ctx, args, lang):
+    """Inicia um novo jogo de Guess the Number"""
+    try:
+        if len(args) < 4:
+            await ctx.send(t('guess_start_usage', lang))
+            return
+            
+        try:
+            min_num = int(args[0])
+            max_num = int(args[1])
+            trades_reward = int(args[2])
+            channel_mention = args[3]
+        except ValueError:
+            await ctx.send(t('guess_invalid_numbers', lang))
+            return
+            
+        # Validar números
+        if min_num >= max_num:
+            await ctx.send(t('guess_invalid_range', lang))
+            return
+            
+        if trades_reward < 1 or trades_reward > 100:
+            await ctx.send(t('guess_invalid_trades', lang))
+            return
+            
+        # Obter canal
+        try:
+            channel_id = int(channel_mention.replace('<#', '').replace('>', ''))
+            channel = bot.get_channel(channel_id)
+        except:
+            await ctx.send(t('guess_invalid_channel', lang))
+            return
+            
+        if not channel:
+            await ctx.send(t('guess_channel_not_found', lang))
+            return
+            
+        # Gerar número aleatório
+        target_number = random.randint(min_num, max_num)
+        
+        # Criar ID único para o jogo
+        game_id = str(uuid.uuid4())[:8]
+        
+        # Salvar informações do jogo
+        game_info = {
+            'game_id': game_id,
+            'channel_id': channel.id,
+            'min_number': min_num,
+            'max_number': max_num,
+            'target_number': target_number,
+            'trades_reward': trades_reward,
+            'created_by': ctx.author.id,
+            'created_at': datetime.datetime.now(),
+            'status': 'active',
+            'attempts': {},
+            'winner': None,
+            'lang': lang  # Salva o idioma do criador
+        }
+        
+        active_guess_games[game_id] = game_info
+        
+        # Salvar no MongoDB
+        if db.is_connected():
+            db.save_guess_game(game_id, game_info)
+        
+        # Criar embed do jogo
+        embed = discord.Embed(
+            title=t('guess_game_title', lang),
+            description=t('guess_game_desc', lang, {
+                'min': min_num,
+                'max': max_num,
+                'trades': trades_reward
+            }),
+            color=0x3399ff
+        )
+        
+        embed.add_field(
+            name=t('guess_instructions', lang),
+            value=t('guess_instructions_desc', lang),
+            inline=False
+        )
+        
+        embed.set_footer(text=t('guess_game_id', lang, {'id': game_id}))
+        
+        # Criar view com botão (passando lang)
+        view = GuessNumberView(game_id, lang)
+        
+        # Enviar mensagem no canal
+        await channel.send(embed=embed, view=view)
+        
+        # Confirmar criação
+        confirm_embed = discord.Embed(
+            title=t('guess_created_title', lang),
+            description=t('guess_created_desc', lang, {
+                'channel': channel.mention,
+                'id': game_id
+            }),
+            color=0x00ff00
+        )
+        
+        await ctx.send(embed=confirm_embed)
+        
+    except Exception as e:
+        await log_error(f"Erro ao iniciar guess game: {e}")
+        await ctx.send(t('command_error', lang))
+
+async def guess_hint_command(ctx, args, lang):
+    """Envia uma dica para o jogo de Guess the Number"""
+    try:
+        if len(args) < 2:
+            await ctx.send(t('guess_hint_usage', lang))
+            return
+            
+        hint_type = args[0].lower()
+        channel_mention = args[1]
+        
+        # Obter canal
+        try:
+            channel_id = int(channel_mention.replace('<#', '').replace('>', ''))
+            channel = bot.get_channel(channel_id)
+        except:
+            await ctx.send(t('guess_invalid_channel', lang))
+            return
+            
+        if not channel:
+            await ctx.send(t('guess_channel_not_found', lang))
+            return
+            
+        # Encontrar jogo ativo no canal
+        active_game = None
+        for game_id, game in active_guess_games.items():
+            if game['channel_id'] == channel.id and game['status'] == 'active':
+                active_game = game
+                break
+                
+        if not active_game:
+            await ctx.send(t('guess_no_active_game', lang))
+            return
+            
+        # Gerar dica baseada no tipo
+        hint_text = ""
+        if hint_type == 'first':
+            first_digit = str(active_game['target_number'])[0]
+            hint_text = t('guess_hint_first', lang, {'digit': first_digit})
+        elif hint_type == 'last':
+            last_digit = str(active_game['target_number'])[-1]
+            hint_text = t('guess_hint_last', lang, {'digit': last_digit})
+        elif hint_type == 'number':
+            # Dica com número de dígitos
+            num_digits = len(str(active_game['target_number']))
+            hint_text = t('guess_hint_digits', lang, {'digits': num_digits})
+        else:
+            await ctx.send(t('guess_invalid_hint_type', lang))
+            return
+            
+        # Criar embed da dica
+        embed = discord.Embed(
+            title=t('guess_hint_title', lang),
+            description=hint_text,
+            color=0xffcc00
+        )
+        
+        embed.set_footer(text=t('guess_hint_footer', lang))
+        
+        # Enviar dica no canal
+        await channel.send(embed=embed)
+        
+        # Confirmar envio
+        await ctx.send(t('guess_hint_sent', lang))
+        
+    except Exception as e:
+        await log_error(f"Erro ao enviar dica: {e}")
+        await ctx.send(t('command_error', lang))
+
+async def guess_setup_command(ctx, args, lang):
+    """Configurações do sistema Guess the Number"""
+    try:
+        if len(args) < 2:
+            await ctx.send(t('guess_setup_usage', lang))
+            return
+            
+        setting = args[0].lower()
+        value = args[1].lower()
+        
+        if setting == 'dm':
+            global guess_dm_enabled
+            if value == 'enable':
+                guess_dm_enabled = True
+                await ctx.send(t('guess_dm_enabled', lang))
+            elif value == 'disable':
+                guess_dm_enabled = False
+                await ctx.send(t('guess_dm_disabled', lang))
+            else:
+                await ctx.send(t('guess_invalid_dm_setting', lang))
+                
+        elif setting == 'lock-role':
+            global guess_lock_role
+            try:
+                role_id = int(value)
+                role = ctx.guild.get_role(role_id)
+                if role:
+                    guess_lock_role = role_id
+                    await ctx.send(t('guess_lock_role_set', lang, {'role': role.name}))
+                else:
+                    await ctx.send(t('guess_role_not_found', lang))
+            except ValueError:
+                await ctx.send(t('guess_invalid_role_id', lang))
+                
+        else:
+            await ctx.send(t('guess_invalid_setting', lang))
+            
+    except Exception as e:
+        await log_error(f"Erro na configuração do guess: {e}")
+        await ctx.send(t('command_error', lang))
+
+async def guess_end_command(ctx, args, lang):
+    """Força o encerramento de um jogo de Guess the Number"""
+    try:
+        if len(args) < 1:
+            await ctx.send(t('guess_end_usage', lang))
+            return
+            
+        channel_mention = args[0]
+        
+        # Obter canal
+        try:
+            channel_id = int(channel_mention.replace('<#', '').replace('>', ''))
+            channel = bot.get_channel(channel_id)
+        except:
+            await ctx.send(t('guess_invalid_channel', lang))
+            return
+            
+        if not channel:
+            await ctx.send(t('guess_channel_not_found', lang))
+            return
+            
+        # Encontrar e encerrar jogo ativo no canal
+        game_to_end = None
+        for game_id, game in active_guess_games.items():
+            if game['channel_id'] == channel.id and game['status'] == 'active':
+                game_to_end = game
+                break
+                
+        if not game_to_end:
+            await ctx.send(t('guess_no_active_game', lang))
+            return
+            
+        # Encerrar jogo
+        game_to_end['status'] = 'ended'
+        del active_guess_games[game_to_end['game_id']]
+        
+        # Remover do MongoDB
+        if db.is_connected():
+            db.remove_guess_game(game_to_end['game_id'])
+        
+        # Criar embed de encerramento
+        embed = discord.Embed(
+            title=t('guess_ended_title', lang),
+            description=t('guess_ended_desc', lang, {
+                'number': game_to_end['target_number'],
+                'attempts': len(game_to_end['attempts'])
+            }),
+            color=0xff5555
+        )
+        
+        if game_to_end['winner']:
+            embed.add_field(
+                name=t('guess_winner', lang),
+                value=f"<@{game_to_end['winner']}>",
+                inline=False
+            )
+        else:
+            embed.add_field(
+                name=t('guess_no_winner', lang),
+                value=t('guess_no_winner_desc', lang),
+                inline=False
+            )
+        
+        # Enviar no canal
+        await channel.send(embed=embed)
+        
+        # Confirmar encerramento
+        await ctx.send(t('guess_end_success', lang))
+        
+    except Exception as e:
+        await log_error(f"Erro ao encerrar guess game: {e}")
+        await ctx.send(t('command_error', lang))
+
+@guess_game_command.error
+async def guess_game_error(ctx, error):
+    try:
+        lang = get_user_language(ctx.author.id)
+        
+        if isinstance(error, commands.MissingPermissions):
+            await ctx.send(t('admin_only', lang))
+        else:
+            await log_error(f"Erro em comando guess game: {error}")
+            await ctx.send(t('command_error', lang))
+    except Exception as e:
+        await log_error(f"Erro ao tratar erro do comando guess game: {e}")
 
 class GiveawayView(discord.ui.View):
     def __init__(self):
@@ -349,6 +880,14 @@ async def sync_data_to_mongodb():
                             'timestamp': timestamp
                         })
                     
+                    # Preparar operações em lote para jogos de guess
+                    guess_games_batch = []
+                    for game_id, game_info in active_guess_games.items():
+                        guess_games_batch.append({
+                            'game_id': game_id,
+                            'game_info': game_info
+                        })
+                    
                     # Executar sincronizações em lote, limitando o tempo para evitar bloqueios
                     await asyncio.sleep(0.1)  # Cede o controle para o loop de eventos
                     if user_trades_batch:
@@ -394,6 +933,15 @@ async def sync_data_to_mongodb():
                     if box_cooldowns_batch:
                         db.reconnect_if_needed()
                         db.bulk_update_box_times(box_cooldowns_batch)
+                    
+                    await asyncio.sleep(0.1)  # Cede o controle para o loop de eventos
+                    if guess_games_batch:
+                        try:
+                            db.reconnect_if_needed()
+                            for item in guess_games_batch:
+                                db.save_guess_game(item['game_id'], item['game_info'])
+                        except Exception as e:
+                            await log_error(f"Erro ao sincronizar jogos de guess em lote: {e}")
                     
                     print("🔄 Dados sincronizados com MongoDB (modo lote)")
                 except Exception as e:
@@ -482,6 +1030,12 @@ def load_data_from_mongodb():
         if box_cooldowns_data:
             box_cooldowns = box_cooldowns_data
             print(f"✅ Carregados {len(box_cooldowns)} registros de cooldown de box do MongoDB")
+            
+        # Carregar jogos ativos de guess
+        guess_games_data = db.get_all_active_guess_games()
+        if guess_games_data:
+            active_guess_games = guess_games_data
+            print(f"✅ Carregados {len(active_guess_games)} jogos ativos de guess do MongoDB")
     except Exception as e:
         print(f"❌ Erro ao carregar dados do MongoDB: {e}")
 
@@ -1943,7 +2497,8 @@ async def helpdb_command(ctx):
             "`!givetrade`", "`!resetbox`", "`!resetuser`", "`!deletegiveaway`",
             "`!resetdice`", "`!reset-all`", "`!giveaway`", "`!helpdb`",
             "`!resetslot`", "`!bet`", "`!lockbet`", "`!endbet`", "`!deletebet`",
-            "`!forcegiveaway`", "`!removetrade`", "`!listbets`", "`!cleanoldbets`"
+            "`!forcegiveaway`", "`!removetrade`", "`!listbets`", "`!cleanoldbets`",
+            "`!gg start`", "`!gg hint`", "`!gg setup`", "`!gg end`"
         ]
         
         embed.add_field(
@@ -1975,6 +2530,21 @@ async def helpdb_command(ctx):
         embed.add_field(
             name="🧹 Comandos de Limpeza e Gerenciamento",
             value="\n".join(cleanup_commands),
+            inline=False
+        )
+        
+        # Comandos do Sistema Guess the Number
+        guess_commands = [
+            "`!gg start <min> <max> <trades> <#canal>` - Inicia um jogo de adivinhação",
+            "`!gg hint <first|last|number> <#canal>` - Envia uma dica para o jogo",
+            "`!gg setup dm <enable|disable>` - Habilita/desabilita DMs para ganhadores",
+            "`!gg setup lock-role <role_id>` - Define role para bloquear canal quando alguém acertar",
+            "`!gg end <#canal>` - Força o encerramento de um jogo"
+        ]
+        
+        embed.add_field(
+            name="🎯 Sistema Guess the Number",
+            value="\n".join(guess_commands),
             inline=False
         )
         
@@ -2172,6 +2742,11 @@ async def cleanup_expired_trades():
                 if deleted_count > 0:
                     print(f"🧹 {deleted_count} trades expirados removidos do MongoDB")
                     
+                # Limpar jogos de guess expirados
+                expired_guess_count = db.cleanup_expired_guess_games()
+                if expired_guess_count > 0:
+                    print(f"🧹 {expired_guess_count} jogos de guess expirados removidos do MongoDB")
+                    
                 # Atualizar dicionários locais
                 active_trades_data = db.get_all_active_trades()
                 if active_trades_data:
@@ -2273,6 +2848,32 @@ async def on_ready():
                 print(f"Erro ao registrar views persistentes: {e}")
                 if "maximum number of children exceeded" in str(e):
                     print("⚠️ Limite de views persistentes excedido. Considere limpar views antigas ou reduzir o número de apostas ativas.")
+            
+            # --- REGISTRAR VIEWS PERSISTENTES DOS JOGOS DE GUESS ---
+            try:
+                guess_games = db.get_all_active_guess_games()
+                guess_games_list = list(guess_games.values())
+                
+                # Limitar o número de views de guess para evitar erro de limite
+                max_guess_views = 20  # Limite máximo de jogos de guess ativos
+                if len(guess_games_list) > max_guess_views:
+                    print(f"⚠️ Limite de views de guess excedido. Registrando apenas {max_guess_views} de {len(guess_games_list)} jogos.")
+                    guess_games_list = guess_games_list[:max_guess_views]
+                
+                for game in guess_games_list:
+                    try:
+                        lang = get_user_language(game.get('created_by', ADMIN_ID))
+                        view = GuessNumberView(game['game_id'], lang)
+                        bot.add_view(view)
+                    except Exception as view_error:
+                        print(f"❌ Erro ao registrar view do jogo de guess {game['game_id']}: {view_error}")
+                        continue
+                        
+                print(f"Views de jogos de guess persistentes registradas: {len(guess_games_list)} jogos.")
+            except Exception as e:
+                print(f"Erro ao registrar views persistentes de guess: {e}")
+                if "maximum number of children exceeded" in str(e):
+                    print("⚠️ Limite de views persistentes excedido. Considere limpar views antigas ou reduzir o número de jogos ativos.")
             # --- REGISTRAR VIEWS PERSISTENTES DOS GIVEAWAYS ---
             try:
                 bot.add_view(GiveawayView())  # Registrar view persistente para todos os sorteios
