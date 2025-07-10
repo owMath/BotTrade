@@ -268,7 +268,7 @@ def execute_async_code(uid, response_key2):
             "uid": {'stringValue': uiddd},
             "matchId": {'stringValue': matchId},
             "num": {'integerValue': '1'},
-            "tradeLevel": {"integerValue": "14"}
+            "tradeLevel": {"integerValue": "15"}
         }
     })
 
