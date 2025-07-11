@@ -1202,57 +1202,45 @@ async def activecodes_command(ctx):
     """Comando para administradores verem todos os códigos ativos no sistema"""
     # Obter idioma do usuário
     lang = get_user_language(ctx.author.id)
-    
     try:
         if not active_trades:
             await ctx.send(t('no_active_codes', lang))
             return
-        
-        # Criar embed para mostrar os códigos
-        embed = discord.Embed(
-            title=t('active_codes_title', lang),
-            description=t('active_codes_desc', lang, {'count': len(active_trades)}),
-            color=0x0088ff
-        )
-        
         # Ordenar codes por timestamp (mais recentes primeiro)
         sorted_codes = sorted(
             active_trades.items(),
             key=lambda x: x[1]['timestamp'],
             reverse=True
         )
-        
-        # Adicionar campos para cada código
-        for code, info in sorted_codes:
-            # Calcular tempo restante
-            time_diff = datetime.datetime.now() - info['timestamp']
-            expire_minutes = info.get('expire_minutes', 30)
-            minutes_left = max(0, expire_minutes - int(time_diff.total_seconds() / 60))
-            
-            # Obter nome do usuário
-            user_id = info['user_id']
-            user = ctx.guild.get_member(user_id)
-            user_name = user.display_name if user else f"ID: {user_id}"
-            
-            # Formatar status
-            status_text = info['status']
-            if status_text == 'pending':
-                status_text = t('status_pending', lang)
-            elif status_text == 'processing':
-                status_text = t('status_processing', lang)
-            elif status_text == 'completed':
-                status_text = t('status_completed', lang)
-            elif status_text == 'failed':
-                status_text = t('status_failed', lang)
-            
-            # Adicionar campo para o código
-            embed.add_field(
-                name=f"📋 {code}",
-                value=f"👤 {user_name}\n⏱️ {t('time_remaining', lang)}: {minutes_left} {t('minutes', lang)}\n📊 {t('status', lang)}: {status_text}",
-                inline=True
+        # Dividir os códigos em grupos de 25 e enviar múltiplos embeds
+        for i in range(0, len(sorted_codes), 25):
+            embed = discord.Embed(
+                title=t('active_codes_title', lang),
+                description=t('active_codes_desc', lang, {'count': len(active_trades)}),
+                color=0x0088ff
             )
-        
-        await ctx.send(embed=embed)
+            for code, info in sorted_codes[i:i+25]:
+                time_diff = datetime.datetime.now() - info['timestamp']
+                expire_minutes = info.get('expire_minutes', 30)
+                minutes_left = max(0, expire_minutes - int(time_diff.total_seconds() / 60))
+                user_id = info['user_id']
+                user = ctx.guild.get_member(user_id)
+                user_name = user.display_name if user else f"ID: {user_id}"
+                status_text = info['status']
+                if status_text == 'pending':
+                    status_text = t('status_pending', lang)
+                elif status_text == 'processing':
+                    status_text = t('status_processing', lang)
+                elif status_text == 'completed':
+                    status_text = t('status_completed', lang)
+                elif status_text == 'failed':
+                    status_text = t('status_failed', lang)
+                embed.add_field(
+                    name=f"📋 {code}",
+                    value=f"👤 {user_name}\n⏱️ {t('time_remaining', lang)}: {minutes_left} {t('minutes', lang)}\n📊 {t('status', lang)}: {status_text}",
+                    inline=True
+                )
+            await ctx.send(embed=embed)
     except Exception as e:
         await log_error(f"Erro no comando activecodes: {e}")
         await ctx.send(t('command_error', lang))
