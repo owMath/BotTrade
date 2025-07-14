@@ -248,6 +248,18 @@ TRANSLATIONS = {
         'resetclaim_not_on_cooldown': '{user} não está em cooldown de claim diário.',
         'help_resetclaim': 'Reseta o cooldown de claim diário de um usuário.',
         
+        # Comando ranking
+        'ranking_title': '🏆 Ranking de Trades',
+        'ranking_desc': 'Top 10 membros com mais trades',
+        'ranking_position': 'Posição',
+        'ranking_user': 'Usuário',
+        'ranking_trades': 'Trades',
+        'ranking_no_trades': 'Nenhum usuário com trades encontrado.',
+        'ranking_your_position': 'Sua posição: #{position}',
+        'help_ranking': 'Mostra o ranking dos membros com mais trades.',
+        
+        # Mensagens de erro gerais
+        'command_error': '❌ Ocorreu um erro ao executar o comando. Tente novamente.',
         # Comando stats
         'stats_invalid_period': 'Período inválido. Use um dos seguintes: {periods}',
         'stats_db_required': 'Este comando requer conexão com o banco de dados.',
@@ -545,6 +557,19 @@ TRANSLATIONS = {
 
         # Comando abort
         'abort_no_code': 'Please provide the trade code you want to cancel.',
+        
+        # Comando ranking
+        'ranking_title': '🏆 Trade Ranking',
+        'ranking_desc': 'Top 10 members with most trades',
+        'ranking_position': 'Position',
+        'ranking_user': 'User',
+        'ranking_trades': 'Trades',
+        'ranking_no_trades': 'No users with trades found.',
+        'ranking_your_position': 'Your position: #{position}',
+        'help_ranking': 'Shows the ranking of members with most trades.',
+        
+        # General error messages
+        'command_error': '❌ An error occurred while executing the command. Please try again.',
         'abort_success_title': 'Trade Canceled',
         'abort_success_desc': 'The trade with code **{code}** has been successfully canceled.',
         'help_abort': 'Cancels an active trade using its code.',
@@ -872,6 +897,19 @@ TRANSLATIONS = {
 
         # Comando abort
         'abort_no_code': 'Por favor, proporcione el código del trade que desea cancelar.',
+        
+        # Comando ranking
+        'ranking_title': '🏆 Ranking de Trades',
+        'ranking_desc': 'Top 10 miembros con más trades',
+        'ranking_position': 'Posición',
+        'ranking_user': 'Usuario',
+        'ranking_trades': 'Trades',
+        'ranking_no_trades': 'No se encontraron usuarios con trades.',
+        'ranking_your_position': 'Tu posición: #{position}',
+        'help_ranking': 'Muestra el ranking de los miembros con más trades.',
+        
+        # Mensajes de error generales
+        'command_error': '❌ Ocurrió un error al ejecutar el comando. Inténtalo de nuevo.',
         'abort_success_title': 'Trade Cancelado',
         'abort_success_desc': 'El trade con código **{code}** ha sido cancelado con éxito.',
         'help_abort': 'Cancela un trade activo usando su código.',
@@ -1200,6 +1238,19 @@ TRANSLATIONS = {
 
         # Commandes et réponses
         'trades_added': '✅ {amount} trade(s) ajouté(s) pour {user}. Total actuel: **{total}**',
+        
+        # Comando ranking
+        'ranking_title': '🏆 Classement des Trades',
+        'ranking_desc': 'Top 10 membres avec le plus de trades',
+        'ranking_position': 'Position',
+        'ranking_user': 'Utilisateur',
+        'ranking_trades': 'Trades',
+        'ranking_no_trades': 'Aucun utilisateur avec des trades trouvé.',
+        'ranking_your_position': 'Votre position : #{position}',
+        'help_ranking': 'Affiche le classement des membres avec le plus de trades.',
+        
+        # Messages d'erreur généraux
+        'command_error': '❌ Une erreur s\'est produite lors de l\'exécution de la commande. Veuillez réessayer.',
         'trades_available': '🎮 Vous avez **{count}** trade(s) disponible(s).',
         'trades_claimed': 'Vous avez reçu **5 trades quotidiens**! Vous avez maintenant **{total}** trade(s).',
         'trades_used': 'ℹ️ Trade utilisé! Vous avez encore **{count}** trade(s) disponible(s).',
@@ -1460,6 +1511,19 @@ TRANSLATIONS = {
         'guess_win_dm_title': '🎯 Du hast gewonnen!',
         'guess_win_dm_desc': 'Glückwunsch! Du hast die Zahl **{number}** erraten und **{trades}** Trades gewonnen!\n\nGesamte Trades: **{total}**',
         'guess_wrong_title': '❌ Nicht diesmal...',
+        
+        # Comando ranking
+        'ranking_title': '🏆 Trade-Ranking',
+        'ranking_desc': 'Top 10 Mitglieder mit den meisten Trades',
+        'ranking_position': 'Position',
+        'ranking_user': 'Benutzer',
+        'ranking_trades': 'Trades',
+        'ranking_no_trades': 'Keine Benutzer mit Trades gefunden.',
+        'ranking_your_position': 'Deine Position: #{position}',
+        'help_ranking': 'Zeigt das Ranking der Mitglieder mit den meisten Trades.',
+        
+        # Allgemeine Fehlermeldungen
+        'command_error': '❌ Beim Ausführen des Befehls ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.',
         'guess_wrong_desc': 'Deine Vermutung war **{guess}**.\n\n�� **Hinweis:** {hint}',
         'guess_hint_higher': 'Die Zahl ist **höher** als deine Vermutung.',
         'guess_hint_lower': 'Die Zahl ist **niedriger** als deine Vermutung.',
@@ -1730,6 +1794,19 @@ TRANSLATIONS = {
         'guess_win_dm_title': '🎯 Hai vinto!',
         'guess_win_dm_desc': 'Congratulazioni! Hai indovinato il numero **{number}** e vinto **{trades}** trades!\n\nTotale trades: **{total}**',
         'guess_wrong_title': '❌ Non questa volta...',
+        
+        # Comando ranking
+        'ranking_title': '🏆 Classifica dei Trades',
+        'ranking_desc': 'Top 10 membri con più trades',
+        'ranking_position': 'Posizione',
+        'ranking_user': 'Utente',
+        'ranking_trades': 'Trades',
+        'ranking_no_trades': 'Nessun utente con trades trovato.',
+        'ranking_your_position': 'La tua posizione: #{position}',
+        'help_ranking': 'Mostra la classifica dei membri con più trades.',
+        
+        # Messaggi di errore generali
+        'command_error': '❌ Si è verificato un errore durante l\'esecuzione del comando. Riprova.',
         'guess_wrong_desc': 'La tua supposizione era **{guess}**.\n\n💡 **Suggerimento:** {hint}',
         'guess_hint_higher': 'Il numero è **più alto** della tua supposizione.',
         'guess_hint_lower': 'Il numero è **più basso** della tua supposizione.',
@@ -2000,6 +2077,19 @@ TRANSLATIONS = {
         'guess_win_dm_title': '🎯 Wygrałeś!',
         'guess_win_dm_desc': 'Gratulacje! Zgadłeś liczbę **{number}** i wygrałeś **{trades}** trades!\n\nŁączna liczba trades: **{total}**',
         'guess_wrong_title': '❌ Nie tym razem...',
+        
+        # Comando ranking
+        'ranking_title': '🏆 Ranking Wymian',
+        'ranking_desc': 'Top 10 członków z największą liczbą wymian',
+        'ranking_position': 'Pozycja',
+        'ranking_user': 'Użytkownik',
+        'ranking_trades': 'Wymiany',
+        'ranking_no_trades': 'Nie znaleziono użytkowników z wymianami.',
+        'ranking_your_position': 'Twoja pozycja: #{position}',
+        'help_ranking': 'Pokazuje ranking członków z największą liczbą wymian.',
+        
+        # Ogólne komunikaty o błędach
+        'command_error': '❌ Wystąpił błąd podczas wykonywania polecenia. Spróbuj ponownie.',
         'guess_wrong_desc': 'Twoja odpowiedź to **{guess}**.\n\n�� **Podpowiedź:** {hint}',
         'guess_hint_higher': 'Liczba jest **wyższa** niż twoja odpowiedź.',
         'guess_hint_lower': 'Liczba jest **niższa** niż twoja odpowiedź.',

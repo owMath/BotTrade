@@ -1372,6 +1372,97 @@ async def stats_command(ctx, period: str = "all"):
     except Exception as e:
         await log_error(f"Erro no comando stats: {e}")
         await ctx.send(t('command_error', lang))
+
+@bot.command(name='ranking')
+async def ranking_command(ctx):
+    """Comando para mostrar o ranking de trades dos membros"""
+    # Obter idioma do usuário
+    lang = get_user_language(ctx.author.id)
+    
+    try:
+        # Obter todos os trades dos usuários
+        all_trades = {}
+        
+        if db.is_connected():
+            # Obter dados do MongoDB
+            all_trades = db.get_all_user_trades()
+        else:
+            # Usar dados locais se MongoDB não estiver conectado
+            all_trades = user_trades.copy()
+        
+        if not all_trades:
+            await ctx.send(t('ranking_no_trades', lang))
+            return
+        
+        # Filtrar usuários com trades > 0 e ordenar por quantidade
+        users_with_trades = {user_id: trades for user_id, trades in all_trades.items() if trades > 0}
+        
+        if not users_with_trades:
+            await ctx.send(t('ranking_no_trades', lang))
+            return
+        
+        # Ordenar por quantidade de trades (decrescente)
+        sorted_users = sorted(users_with_trades.items(), key=lambda x: x[1], reverse=True)
+        
+        # Pegar apenas os top 10
+        top_10 = sorted_users[:10]
+        
+        # Criar embed para o ranking
+        embed = discord.Embed(
+            title=t('ranking_title', lang),
+            description=t('ranking_desc', lang),
+            color=0xffd700  # Dourado
+        )
+        
+        # Adicionar campos para cada posição
+        for i, (user_id, trades_count) in enumerate(top_10, 1):
+            # Tentar obter o membro do servidor
+            member = ctx.guild.get_member(user_id)
+            if member:
+                user_name = member.display_name
+            else:
+                user_name = f"Usuário {user_id}"
+            
+            # Emoji para as 3 primeiras posições
+            if i == 1:
+                position_emoji = "🥇"
+            elif i == 2:
+                position_emoji = "🥈"
+            elif i == 3:
+                position_emoji = "🥉"
+            else:
+                position_emoji = f"#{i}"
+            
+            embed.add_field(
+                name=f"{position_emoji} {user_name}",
+                value=f"{trades_count} {t('ranking_trades', lang)}",
+                inline=False
+            )
+        
+        # Adicionar posição do usuário atual se não estiver no top 10
+        current_user_id = ctx.author.id
+        current_user_position = None
+        
+        for i, (user_id, trades_count) in enumerate(sorted_users, 1):
+            if user_id == current_user_id:
+                current_user_position = i
+                break
+        
+        if current_user_position and current_user_position > 10:
+            embed.add_field(
+                name="",
+                value=t('ranking_your_position', lang, {'position': current_user_position}),
+                inline=False
+            )
+        
+        # Adicionar timestamp
+        embed.timestamp = datetime.datetime.now()
+        
+        await ctx.send(embed=embed)
+        
+    except Exception as e:
+        await log_error(f"Erro no comando ranking: {e}")
+        await ctx.send(t('command_error', lang))
     
 # ===============================================
 # Novos Comandos para Gerenciamento de Trades
@@ -2698,6 +2789,7 @@ async def admin_command_error(ctx, error):
 @usetrade_command.error
 @slot_command.error
 @box_command.error
+@ranking_command.error
 async def channel_command_error(ctx, error):
     try:
         # Obter idioma do usuário
