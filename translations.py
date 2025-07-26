@@ -832,7 +832,7 @@ TRANSLATIONS = {
         'slot_prize': 'Premio',
         'slot_trades_won': '¡Ganaste **{count}** trades!',
         'slot_total_trades': 'Total de Trades',
-        'slot_total_count': 'Sie haben jetzt **{count}** Trades.',
+        'slot_total_count': 'Ahora tienes **{count}** Trades.',
         'resetslot_no_member': '⚠️ Debes mencionar a un miembro para reiniciar su enfriamiento de tragamonedas.',
         'resetslot_success': '✅ Enfriamiento de tragamonedas reiniciado para **{user}**.',
         'resetslot_not_on_cooldown': '📭 **{user}** no está en enfriamiento de tragamonedas.',
